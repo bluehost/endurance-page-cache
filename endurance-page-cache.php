@@ -114,8 +114,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 							unlink( $dir . '/' . $file );
 						}
 					}
+					rmdir( $dir );
 				}
-				rmdir( $dir );
 			}
 		}
 
