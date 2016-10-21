@@ -229,5 +229,5 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $additions . $rules;
 		}
 	}
-	$flash = new Endurance_Page_Cache;
+	$epc = new Endurance_Page_Cache;
 }
