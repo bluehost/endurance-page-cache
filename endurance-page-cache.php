@@ -96,7 +96,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_all( $dir = null ) {
-			if ( is_null( $dir ) || true == $dir ) {
+			if ( is_null( $dir ) || 'true' == $dir ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
 			$dir = str_replace( '_index.html', '', $dir );
