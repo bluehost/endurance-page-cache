@@ -241,7 +241,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle) [NC]
 	RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
 	RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
-
 </IfModule>' . "\n";
 			return $additions . $rules;
 		}
