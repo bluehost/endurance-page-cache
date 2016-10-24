@@ -8,6 +8,12 @@ Author URI: https://www.mikehansen.me/
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
+
+// Do not access file directly!
+if ( ! defined( 'WPINC' ) ) { die; }
+
+define( 'EPC_VERSION', 0.1 );
+
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
