@@ -19,7 +19,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function __construct() {
 			$this->hooks();
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			$this->cache_exempt = apply_filters( 'epc_exempt_uri_contains', array( 'wp-admin', '.php', 'checkout', 'cart' ) );
+			$this->cache_exempt = array( 'wp-admin', '.php', 'checkout', 'cart' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
 				wp_schedule_event( strtotime( 'today midnight' ), 'daily', 'epc_purge' );
 			}
@@ -197,7 +197,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( empty( $_SERVER['REQUEST_URI'] ) ) {
 				$return = false;
 			} else {
-				foreach ( $this->cache_exempt as $exclude ) {
+				foreach ( apply_filters( 'epc_exempt_uri_contains', $this->cache_exempt ) as $exclude ) {
 					if ( strpos( $_SERVER['REQUEST_URI'], $exclude ) ) {
 						$return = false;
 					}
