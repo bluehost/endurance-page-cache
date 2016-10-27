@@ -170,6 +170,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			}
 
+			if ( is_404() ) {
+				$return = false;
+			}
+
 			if ( is_admin() ) {
 				$return = false;
 			}
