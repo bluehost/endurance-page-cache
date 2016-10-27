@@ -46,6 +46,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_action( 'update_option_mm_coming_soon', array( $this, 'purge_all' ) );
 
 			add_action( 'epc_purge', array( $this, 'purge_all' ) );
+
+			add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
 		}
 
 		function comment( $comment_id, $comment_approved ) {
