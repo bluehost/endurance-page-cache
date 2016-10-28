@@ -19,7 +19,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function __construct() {
 			$this->hooks();
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			$this->cache_exempt = array( 'wp-admin', '.php', 'checkout', 'cart' );
+			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
 				wp_schedule_event( strtotime( 'today midnight' ), 'daily', 'epc_purge' );
 			}
