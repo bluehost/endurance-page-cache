@@ -26,28 +26,32 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function hooks() {
-			add_action( 'init', array( $this, 'start' ) );
-			add_action( 'shutdown', array( $this, 'finish' ) );
+			if ( $this->is_enabled() ) {
+				add_action( 'init', array( $this, 'start' ) );
+				add_action( 'shutdown', array( $this, 'finish' ) );
 
-			add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
-			add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
+				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
+				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
-			add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ) );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ) );
 
-			add_action( 'save_post', array( $this, 'save_post' ) );
-			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
+				add_action( 'save_post', array( $this, 'save_post' ) );
+				add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
-			add_action( 'comment_post', 'comment', 10, 2 );
+				add_action( 'comment_post', 'comment', 10, 2 );
 
-			add_action( 'activated_plugin', array( $this, 'purge_all' ) );
-			add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
-			add_action( 'switch_theme', array( $this, 'purge_all' ) );
+				add_action( 'activated_plugin', array( $this, 'purge_all' ) );
+				add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
+				add_action( 'switch_theme', array( $this, 'purge_all' ) );
 
-			add_action( 'update_option_mm_coming_soon', array( $this, 'purge_all' ) );
+				add_action( 'update_option_mm_coming_soon', array( $this, 'purge_all' ) );
 
-			add_action( 'epc_purge', array( $this, 'purge_all' ) );
+				add_action( 'epc_purge', array( $this, 'purge_all' ) );
 
-			add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
+				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
+			}
+
+			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 		}
 
 		function comment( $comment_id, $comment_approved ) {
@@ -249,6 +253,32 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
 </IfModule>' . "\n";
 			return $additions . $rules;
+		}
+
+		function is_enabled() {
+			$cache_settings = get_option( 'mm_cache_settings' );
+			if ( isset( $_GET['epc_toggle'] ) ) {
+				$valid_values = array( 'enabled', 'disabled' );
+				if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
+					$cache_settings['page'] = $_GET['epc_toggle'];
+					update_option( 'mm_cache_settings', $cache_settings );
+					header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+				}
+			}
+			if ( isset( $cache_settings['page'] ) && 'disabled' == $cache_settings['page'] ) {
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		function status_link( $links ) {
+			if ( $this->is_enabled() ) {
+				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
+			} else {
+				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
+			}
+			return $links;
 		}
 	}
 	$epc = new Endurance_Page_Cache;
