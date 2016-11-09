@@ -21,7 +21,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
-				wp_schedule_event( strtotime( 'today midnight' ), 'daily', 'epc_purge' );
+				wp_schedule_event( strtotime( 'today midnight' ), 'epc_weekly', 'epc_purge' );
 			}
 		}
 
@@ -52,6 +52,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
+		}
+
+		function purge_cron( $schedules ) {
+			$schedules['epc_weekly'] = array(
+				'interval' => WEEK_IN_SECONDS,
+				'display'  => esc_html__( 'Weekly' ),
+			);
+
+		    return $schedules;
 		}
 
 		function comment( $comment_id, $comment_approved ) {
