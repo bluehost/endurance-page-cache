@@ -21,7 +21,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
-				wp_schedule_event( strtotime( 'today midnight' ), 'epc_weekly', 'epc_purge' );
+				wp_schedule_event( time() + ( HOUR_IN_SECONDS * 2 ), 'epc_weekly', 'epc_purge' );
 			}
 		}
 
@@ -217,7 +217,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} else {
 				foreach ( apply_filters( 'epc_exempt_uri_contains', $this->cache_exempt ) as $exclude ) {
-					if ( strpos( $_SERVER['REQUEST_URI'], $exclude ) ) {
+					if ( false !== strpos( $_SERVER['REQUEST_URI'], $exclude ) ) {
 						$return = false;
 					}
 				}
