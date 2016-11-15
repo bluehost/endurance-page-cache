@@ -216,7 +216,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( empty( $_SERVER['REQUEST_URI'] ) ) {
 				$return = false;
 			} else {
-				foreach ( apply_filters( 'epc_exempt_uri_contains', $this->cache_exempt ) as $exclude ) {
+				$cache_exempt = apply_filters( 'epc_exempt_uri_contains', $this->cache_exempt );
+				foreach ( $cache_exempt as $exclude ) {
 					if ( false !== strpos( $_SERVER['REQUEST_URI'], $exclude ) ) {
 						$return = false;
 					}
