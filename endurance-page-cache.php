@@ -38,7 +38,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'save_post', array( $this, 'save_post' ) );
 				add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
-				add_action( 'comment_post', 'comment', 10, 2 );
+				add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
 
 				add_action( 'activated_plugin', array( $this, 'purge_all' ) );
 				add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
