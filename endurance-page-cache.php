@@ -40,6 +40,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 				add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
 
+				add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
+
 				add_action( 'activated_plugin', array( $this, 'purge_all' ) );
 				add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
 				add_action( 'switch_theme', array( $this, 'purge_all' ) );
@@ -61,6 +63,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			);
 
 		    return $schedules;
+		}
+
+		function option_handler( $option, $old_value, $new_value ) {
+			if ( false !== strpos( $option, 'widget' ) && $old_value !== $new_value ) {
+				$this->purge_all();
+			}
 		}
 
 		function comment( $comment_id, $comment_approved ) {
