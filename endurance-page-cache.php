@@ -295,12 +295,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function status_link( $links ) {
 			if ( $this->is_enabled() ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
+				$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => '' ) ) . '">Purge cache</a>';
 			} else {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
-			
-			$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => '' ) ) . '">Purge cache</a>';
-			
+
 			return $links;
 		}
 		
