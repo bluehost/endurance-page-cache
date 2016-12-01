@@ -51,6 +51,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'epc_purge', array( $this, 'purge_all' ) );
 
 				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
+				
+				add_action( 'admin_init', array($this, 'do_purge_all') );
 			}
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
@@ -296,7 +298,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			} else {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
+			
+			$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => '' ) ) . '">Purge cache</a>';
+			
 			return $links;
+		}
+		
+		function do_purge_all() {
+			if ( isset( $_GET['epc_purge_all'] ) ) {
+				$this->purge_all();
+				
+				header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+			}
 		}
 	}
 	$epc = new Endurance_Page_Cache;
