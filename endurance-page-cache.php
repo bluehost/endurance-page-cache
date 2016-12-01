@@ -146,7 +146,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$files = array_diff( $files, array( '.', '..' ) );
 				}
 
-				if ( is_array( $files ) && 2 < count( $files ) ) {
+				if ( is_array( $files ) ) {
 					foreach ( $files as $file ) {
 						if ( is_dir( $dir . '/' . $file ) ) {
 							$this->purge_all( $dir . '/' . $file );
