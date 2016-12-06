@@ -64,7 +64,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'display'  => esc_html__( 'Weekly' ),
 			);
 
-		    return $schedules;
+			return $schedules;
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
@@ -165,7 +165,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$cache_file = $this->uri_to_cache( $uri );
 			if ( file_exists( $cache_file ) ) {
 				unlink( $cache_file );
-
 			}
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
@@ -300,18 +299,16 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function status_link( $links ) {
 			if ( $this->is_enabled() ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
-				$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => '' ) ) . '">Purge cache</a>';
+				$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => 'true' ) ) . '">Purge Cache</a>';
 			} else {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
-
 			return $links;
 		}
-		
+
 		function do_purge_all() {
 			if ( isset( $_GET['epc_purge_all'] ) ) {
 				$this->purge_all();
-				
 				header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 			}
 		}
