@@ -114,7 +114,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 
 			if ( $this->is_cachable() && false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
-				$this->path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', $_SERVER['REQUEST_URI'] );
+				$this->path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
 				$this->path = str_replace( '/endurance-page-cache' . $base, '/endurance-page-cache/', $this->path );
 				$this->path = str_replace( '//', '/', $this->path );
 
