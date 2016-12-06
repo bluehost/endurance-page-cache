@@ -283,6 +283,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function is_enabled() {
+
+			$plugins = implode( ' ', get_option( 'active_plugins' ) );
+			if ( strpos( $plugins, 'cach' ) || strpos( $plugins, 'wp-rocket' ) ) {
+				return false;
+			}
+
 			$cache_settings = get_option( 'mm_cache_settings' );
 			if ( isset( $_GET['epc_toggle'] ) ) {
 				$valid_values = array( 'enabled', 'disabled' );
