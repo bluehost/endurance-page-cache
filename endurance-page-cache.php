@@ -2,7 +2,7 @@
 /*
 Plugin Name: Endurance Page Cache
 Description: Static file caching.
-Version: 0.1.1
+Version: 0.2
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
 License: GPLv2 or later
@@ -12,7 +12,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) { die; }
 
-define( 'EPC_VERSION', 0.1.1 );
+define( 'EPC_VERSION', 0.2 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
