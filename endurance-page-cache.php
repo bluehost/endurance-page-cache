@@ -51,7 +51,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'epc_purge', array( $this, 'purge_all' ) );
 
 				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
-				
+
 				add_action( 'admin_init', array($this, 'do_purge_all') );
 			}
 
@@ -191,6 +191,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$return = true;
 
 			$nocache = get_transient( 'epc_nocache_pages', array() );
+
+			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE == true ) {
+				$return = false;
+			}
+
 			if ( is_array( $nocache ) && in_array( $_SERVER['REQUEST_URI'], $nocache ) ) {
 				$return = false;
 			}
