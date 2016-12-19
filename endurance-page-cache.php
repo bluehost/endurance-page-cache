@@ -275,7 +275,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	RewriteRule ^' . $cache_url . '/ - [L]
 	RewriteCond %{REQUEST_METHOD} !POST
 	RewriteCond %{QUERY_STRING} !.*=.*
-	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle) [NC]
+	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
 	RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
 	RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
 </IfModule>' . "\n";
