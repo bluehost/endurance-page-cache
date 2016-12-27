@@ -284,7 +284,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function is_enabled() {
 
-			$plugins = implode( ' ', get_option( 'active_plugins' ) );
+			$plugins = implode( ' ', get_option( 'active_plugins', array() ) );
 			if ( strpos( $plugins, 'cach' ) || strpos( $plugins, 'wp-rocket' ) ) {
 				return false;
 			}
