@@ -290,6 +290,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return false;
 			}
 
+			$theme = array(
+				'stylesheet' => get_option( 'stylesheet' ),
+				'template' => get_option( 'template' ),
+			);
+
+			$incompatible_themes = array( 'headway' );
+
+			if ( in_array( $theme['stylesheet'], $incompatible_themes ) || in_array( $theme['template'], $incompatible_themes ) ) {
+				return false;
+			}
+
 			$cache_settings = get_option( 'mm_cache_settings' );
 			if ( isset( $_GET['epc_toggle'] ) ) {
 				$valid_values = array( 'enabled', 'disabled' );
