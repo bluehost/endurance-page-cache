@@ -2,7 +2,7 @@
 /*
 Plugin Name: Endurance Page Cache
 Description: Static file caching.
-Version: 0.2
+Version: 0.3
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
 License: GPLv2 or later
@@ -12,12 +12,12 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) { die; }
 
-define( 'EPC_VERSION', 0.2 );
+define( 'EPC_VERSION', 0.3 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
-			$this->hooks();
+			add_action( 'init', array( $this, 'start' ), 5 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
