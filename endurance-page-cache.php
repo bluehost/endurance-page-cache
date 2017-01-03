@@ -46,8 +46,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
 				add_action( 'switch_theme', array( $this, 'purge_all' ) );
 
-				add_action( 'update_option_mm_coming_soon', array( $this, 'purge_all' ) );
-
 				add_action( 'epc_purge', array( $this, 'purge_all' ) );
 
 				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
@@ -67,7 +65,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			$option_list = array( 'widget', 'home', 'siteurl' );
+			$option_list = array( 'widget', 'home', 'siteurl', 'mm_coming_soon' );
 			if ( in_array( $option, $option_list ) && $old_value !== $new_value ) {
 				$this->purge_all();
 			}
