@@ -17,7 +17,7 @@ define( 'EPC_VERSION', 0.3 );
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
-			add_action( 'init', array( $this, 'start' ), 5 );
+			add_action( 'init', array( $this, 'hooks' ), 5 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
