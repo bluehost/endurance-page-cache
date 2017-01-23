@@ -17,7 +17,7 @@ define( 'EPC_VERSION', 0.3 );
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
-			add_action( 'init', array( $this, 'hooks' ), 5 );
+			$this->hooks();
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
@@ -33,7 +33,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ) );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ), 8 );
 
 				add_action( 'save_post', array( $this, 'save_post' ) );
 				add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
