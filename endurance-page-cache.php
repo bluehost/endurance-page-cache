@@ -33,7 +33,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ), 8 );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ), 77 );
 
 				add_action( 'save_post', array( $this, 'save_post' ) );
 				add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
