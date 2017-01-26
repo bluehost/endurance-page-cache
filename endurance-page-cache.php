@@ -139,7 +139,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $page;
 		}
 
+		function purge_request( $uri ) {
+			$args = array(
+				'method' => 'PURGE',
+			);
+			wp_remote_request( $uri, $args );
+		}
+
 		function purge_all( $dir = null ) {
+			$this->purge_request( get_option( 'siteurl' ) . '/*' );
 			if ( is_null( $dir ) || 'true' == $dir ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
@@ -164,6 +172,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_single( $uri ) {
+			$this->purge_request( $uri );
 			$cache_file = $this->uri_to_cache( $uri );
 			if ( file_exists( $cache_file ) ) {
 				unlink( $cache_file );
