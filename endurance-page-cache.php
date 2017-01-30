@@ -42,10 +42,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 				add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
 
-				add_action( 'activated_plugin', array( $this, 'purge_all' ) );
-				add_action( 'deactivated_plugin', array( $this, 'purge_all' ) );
-				add_action( 'switch_theme', array( $this, 'purge_all' ) );
-
 				add_action( 'epc_purge', array( $this, 'purge_all' ) );
 
 				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
@@ -65,7 +61,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			$option_list = array( 'widget', 'home', 'siteurl', 'mm_coming_soon' );
+			$option_list = array(
+				'widget', 'home', 'siteurl',
+				'mm_coming_soon', 'active_plugins', 'template',
+				'stylesheet', 'rewrite_rules', 'permalink_structure'
+			);
 			if ( in_array( $option, $option_list ) && $old_value !== $new_value ) {
 				$this->purge_all();
 			}
@@ -140,15 +140,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_request( $uri ) {
+			$siteurl = get_option( 'siteurl' );
+			$uri = str_replace( $siteurl, $siteurl.':8080', $uri );
 			$args = array(
 				'method' => 'PURGE',
+				'headers' => array(
+					'host'   => str_replace( array( 'http://', 'https://' ), '', $siteurl ),
+				)
 			);
 			wp_remote_request( $uri, $args );
 		}
 
 		function purge_all( $dir = null ) {
-			$this->purge_request( get_option( 'siteurl' ) . '/*' );
-			if ( is_null( $dir ) || 'true' == $dir ) {
+			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
 			$dir = str_replace( '_index.html', '', $dir );
@@ -169,6 +173,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					rmdir( $dir );
 				}
 			}
+			$this->purge_request( get_option( 'siteurl' ) . '/*' );
 		}
 
 		function purge_single( $uri ) {
