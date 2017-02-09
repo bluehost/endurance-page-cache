@@ -282,7 +282,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
-			$additions = '<IfModule mod_rewrite.c>
+			$additions = 'Options -Indexes
+<IfModule mod_rewrite.c>
 	RewriteEngine On
 	RewriteBase ' . $base . '
 	RewriteRule ^' . $cache_url . '/ - [L]
