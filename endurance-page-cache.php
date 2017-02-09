@@ -12,7 +12,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) { die; }
 
-define( 'EPC_VERSION', 0.3 );
+define( 'EPC_VERSION', 0.4 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
