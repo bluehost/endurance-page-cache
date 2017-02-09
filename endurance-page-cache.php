@@ -2,7 +2,7 @@
 /*
 Plugin Name: Endurance Page Cache
 Description: Static file caching.
-Version: 0.3
+Version: 0.4
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
 License: GPLv2 or later
