@@ -314,7 +314,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( isset( $_GET['epc_toggle'] ) ) {
+			if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
 				$valid_values = array( 'enabled', 'disabled' );
 				if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
 					$cache_settings['page'] = $_GET['epc_toggle'];
