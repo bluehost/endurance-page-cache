@@ -151,7 +151,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			wp_remote_request( $uri, $args );
 		}
 
-		function purge_all( $dir = null ) {
+		function purge_all( $dir = null, $purge_request = true ) {
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
@@ -165,15 +165,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( is_array( $files ) ) {
 					foreach ( $files as $file ) {
 						if ( is_dir( $dir . '/' . $file ) ) {
-							$this->purge_all( $dir . '/' . $file );
-						} else {
+							$this->purge_all( $dir . '/' . $file, false );
+						} elseif ( file_exists( $dir . '/' . $file ) ) {
 							unlink( $dir . '/' . $file );
 						}
 					}
-					rmdir( $dir );
+					if ( 2 === count( scandir( $dir ) ) ) {
+						rmdir( $dir );
+					}
 				}
 			}
-			$this->purge_request( get_option( 'siteurl' ) . '/*' );
+			if ( true === $purge_request ) {
+				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
+			}
 		}
 
 		function purge_single( $uri ) {
