@@ -182,6 +182,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function purge_single( $uri ) {
 			$this->purge_request( $uri );
+			$this->purge_request( get_option( 'siteurl' ) );
 			$cache_file = $this->uri_to_cache( $uri );
 			if ( file_exists( $cache_file ) ) {
 				unlink( $cache_file );
