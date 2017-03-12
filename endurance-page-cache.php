@@ -223,7 +223,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			}
 
-			if ( ! get_option( 'permalink_structure' ) ) {
+			if ( false === get_option( 'permalink_structure' ) ) {
 				$return = false;
 			}
 
@@ -254,7 +254,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			return apply_filters( 'epc_is_cachable', $return );
+			$return = apply_filters( 'epc_is_cachable', $return );
+			if ( false === $return ) {
+				nocache_headers();
+			}
+			return $return;
 		}
 
 		function start() {
@@ -333,10 +337,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function status_link( $links ) {
 			if ( $this->is_enabled() ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
-				$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => 'true' ) ) . '">Purge Cache</a>';
 			} else {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
+			$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => 'true' ) ) . '">Purge Cache</a>';
 			return $links;
 		}
 
