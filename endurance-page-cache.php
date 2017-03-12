@@ -61,12 +61,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			$option_list = array(
-				'widget', 'home', 'siteurl',
-				'mm_coming_soon', 'active_plugins', 'template',
-				'stylesheet', 'rewrite_rules', 'permalink_structure'
-			);
-			if ( in_array( $option, $option_list ) && $old_value !== $new_value ) {
+			if ( $old_value !== $new_value ) {
 				$this->purge_all();
 			}
 		}
