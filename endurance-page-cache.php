@@ -34,20 +34,20 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ), 77 );
-
-				add_action( 'save_post', array( $this, 'save_post' ) );
-				add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
-
-				add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
-
-				add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
-
-				add_action( 'epc_purge', array( $this, 'purge_all' ) );
-
-				add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
-
-				add_action( 'admin_init', array( $this, 'do_purge_all' ) );
 			}
+
+			add_action( 'save_post', array( $this, 'save_post' ) );
+			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
+
+			add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
+
+			add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
+
+			add_action( 'epc_purge', array( $this, 'purge_all' ) );
+
+			add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
+
+			add_action( 'admin_init', array( $this, 'do_purge_all' ) );
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 		}
@@ -141,7 +141,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'method' => 'PURGE',
 				'headers' => array(
 					'host'   => str_replace( array( 'http://', 'https://' ), '', $siteurl ),
-				)
+				),
 			);
 			wp_remote_request( $uri, $args );
 		}
