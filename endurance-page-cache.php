@@ -50,6 +50,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_action( 'admin_init', array( $this, 'do_purge_all' ) );
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
+
+			add_filter( 'option_mm_cache_settings', array( $this, 'cache_change' ) );
 		}
 
 		function purge_cron( $schedules ) {
@@ -349,6 +351,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$this->purge_all();
 				header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 			}
+		}
+
+		function cache_change( $new_cache_settings ) {
+			if ( is_array( $new_settings ) && isset( $new_cache_settings['page'] ) ) {
+				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
+				$this->toggle_nginx( $new_page_cache_value );
+			}
+		}
+
+		function toggle_nginx( $new_value ) {
+			//write to file
+			//touch file
 		}
 	}
 	$epc = new Endurance_Page_Cache;
