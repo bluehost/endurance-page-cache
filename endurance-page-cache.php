@@ -136,6 +136,37 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $page;
 		}
 
+		function purge_cdn() {
+			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
+				$endpoint = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
+				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+				$query = add_query_arg( array( 'domain' => $domain ), $endpoint );
+				$refresh_token = get_option( '_mm_refresh_token' );
+				if ( false === $refresh_token ) {
+					return;
+				}
+				$path = get_home_path();
+				$path = explode( 'public_html/', $path );
+				if ( 2 === count( $path ) ) {
+					$path = '/public_html/' . $path[1];
+				} else {
+					return;
+				}
+
+				$path_hash = bin2hex( $path );
+				$headers = array(
+					'x-api-refresh-token' => $refresh_token,
+					'x-api-path' => $path_hash,
+				);
+				$args = array(
+					'timeout'     => 1,
+					'blocking'    => false,
+					'headers'     => $headers,
+				);
+				$response = wp_remote_get( $query, $args );
+			}
+		}
+
 		function purge_request( $uri ) {
 			$siteurl = get_option( 'siteurl' );
 			$uri = str_replace( $siteurl, $siteurl.':8080', $uri );
