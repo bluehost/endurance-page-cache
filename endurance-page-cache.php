@@ -205,6 +205,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			if ( true === $purge_request ) {
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
+				$this->purge_cdn();
 			}
 		}
 
