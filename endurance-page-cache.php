@@ -360,9 +360,21 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function toggle_nginx( $new_value ) {
-			//write to file
-			//touch file
+		function toggle_nginx( $new_value = 0 ) {
+			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
+				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+				$path = explode( 'public_html', __DIR__ );
+				if ( 2 !== count( $path ) ) {
+					return;
+				}
+				$user = basename( $path[0] );
+				$path = $path[0];
+				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
+					mkdir( $path . '.cpanel/proxy_conf' );
+				}
+				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, $new_value );
+				@touch( '/etc/proxy_notify/' . $user );
+			}
 		}
 	}
 	$epc = new Endurance_Page_Cache;
