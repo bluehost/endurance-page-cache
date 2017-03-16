@@ -142,7 +142,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( false === $refresh_token ) {
 					return;
 				}
-				$path = get_home_path();
+				$path = ABSPATH;
 				$path = explode( 'public_html/', $path );
 				if ( 2 === count( $path ) ) {
 					$path = '/public_html/' . $path[1];
