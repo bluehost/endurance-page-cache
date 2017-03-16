@@ -127,11 +127,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 
 				file_put_contents( $this->path . '_index.html', $page, LOCK_EX );
-			} else {
-				$nocache = get_transient( 'epc_nocache_pages', array() );
-				$nocache[] = $_SERVER['REQUEST_URI'];
-				delete_transient( 'epc_nocache_pages' );
-				set_transient( 'epc_nocache_pages' , $nocache, DAY_IN_SECONDS );
 			}
 			return $page;
 		}
@@ -239,13 +234,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$return = true;
 
-			$nocache = get_transient( 'epc_nocache_pages', array() );
-
 			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE == true ) {
-				$return = false;
-			}
-
-			if ( is_array( $nocache ) && in_array( $_SERVER['REQUEST_URI'], $nocache ) ) {
 				$return = false;
 			}
 
