@@ -288,16 +288,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			$return = apply_filters( 'epc_is_cachable', $return );
-			if ( false === $return ) {
-				nocache_headers();
-			}
-			return $return;
+			return apply_filters( 'epc_is_cachable', $return );
 		}
 
 		function start() {
 			if ( $this->is_cachable() ) {
 				ob_start( array( $this, 'write' ) );
+			} else {
+				nocache_headers();
 			}
 		}
 
