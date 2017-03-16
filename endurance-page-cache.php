@@ -390,6 +390,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
 				$this->toggle_nginx( $new_page_cache_value );
 			}
+			return $new_cache_settings;
 		}
 
 		function toggle_nginx( $new_value = 0 ) {
