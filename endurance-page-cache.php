@@ -330,15 +330,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return false;
 			}
 
-			$theme = array(
+			$active_theme = array(
 				'stylesheet' => get_option( 'stylesheet' ),
 				'template' => get_option( 'template' ),
 			);
 
-			$incompatible_themes = array( 'headway' );
+			$active_theme = implode( ' ', $active_theme );
 
-			if ( in_array( $theme['stylesheet'], $incompatible_themes ) || in_array( $theme['template'], $incompatible_themes ) ) {
-				return false;
+			$incompatible_themes = array( 'headway', 'prophoto' );
+
+			foreach ( $incompatible_themes as $theme ) {
+				if ( false !== strpos( $active_theme, $theme ) ) {
+					return false;
+				}
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
