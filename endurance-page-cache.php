@@ -63,6 +63,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
+			if ( false !== strpos( $option, '_transient' ) ) {
+				return;
+			}
 			if ( $old_value !== $new_value ) {
 				$this->purge_all();
 			}
@@ -177,6 +180,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_all( $dir = null, $purge_request = true ) {
+			$purged = get_transient( 'epc_purged' );
+			if ( true === $purge_request && true == $purged ) {
+				$next = wp_next_scheduled( array( $this, 'purge_all' ) );
+				if ( false == $next ) {
+					wp_schedule_single_event( time() + 180, array( $this, 'purge_all' ) );
+				}
+				return;
+			}
+
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
@@ -203,6 +215,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( true === $purge_request ) {
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
 				$this->purge_cdn();
+				set_transient( 'epc_purged', time(), 60 );
 			}
 		}
 
