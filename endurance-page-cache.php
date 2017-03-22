@@ -169,7 +169,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function purge_request( $uri ) {
 			$purged = get_transient( 'epc_purged_' . md5( $uri ) );
-			if ( true === $purge_request && true == $purged && null == $dir ) {
+			if ( true === $purge_request && true == $purged ) {
 				$next = wp_next_scheduled( array( $this, 'purge_all' ) );
 				if ( false == $next ) {
 					wp_schedule_single_event( time() + 180, array( $this, 'purge_all' ), $uri );
