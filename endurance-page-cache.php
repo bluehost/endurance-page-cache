@@ -166,7 +166,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function purge_request( $uri ) {
 			$siteurl = get_option( 'siteurl' );
-			$uri = str_replace( $siteurl, $siteurl.':8080', $uri );
+			$uri = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
 			$args = array(
 				'method' => 'PURGE',
 				'headers' => array(
@@ -379,7 +379,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function cache_change( $new_cache_settings ) {
-			if ( is_array( $new_settings ) && isset( $new_cache_settings['page'] ) ) {
+			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
 				$this->toggle_nginx( $new_page_cache_value );
 			}
