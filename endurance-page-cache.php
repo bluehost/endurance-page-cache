@@ -168,6 +168,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_request( $uri ) {
+			$purged = get_transient( 'epc_purged_' . md5( $uri ) );
+			if ( true === $purge_request && true == $purged && null == $dir ) {
+				$next = wp_next_scheduled( array( $this, 'purge_all' ) );
+				if ( false == $next ) {
+					wp_schedule_single_event( time() + 180, array( $this, 'purge_all' ), $uri );
+				}
+				return;
+			}
 			$siteurl = get_option( 'siteurl' );
 			$uri = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
 			$args = array(
@@ -177,17 +185,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				),
 			);
 			wp_remote_request( $uri, $args );
+			if ( 'http://127.0.0.1:8080/.*' == $uri ) {
+				$this->purge_cdn();
+			}
+			set_transient( 'epc_purged_' . md5( $uri ), time(), 60 );
 		}
 
 		function purge_all( $dir = null, $purge_request = true ) {
-			$purged = get_transient( 'epc_purged' );
-			if ( true === $purge_request && true == $purged ) {
-				$next = wp_next_scheduled( array( $this, 'purge_all' ) );
-				if ( false == $next ) {
-					wp_schedule_single_event( time() + 180, array( $this, 'purge_all' ) );
-				}
-				return;
-			}
 
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -214,8 +218,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			if ( true === $purge_request ) {
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
-				$this->purge_cdn();
-				set_transient( 'epc_purged', time(), 60 );
 			}
 		}
 
