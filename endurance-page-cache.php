@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Endurance Page Cache
-Description: Static file caching.
+Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on an account.
 Version: 0.4
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
