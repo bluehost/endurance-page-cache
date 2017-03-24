@@ -17,7 +17,7 @@ define( 'EPC_VERSION', 0.4 );
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
-			if ( defined( 'DOING_AJAX' ) ) {exit;}
+			if ( defined( 'DOING_AJAX' ) ) {return;}
 			$this->hooks();
 			$this->purged = array();
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
