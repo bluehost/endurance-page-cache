@@ -53,7 +53,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 
-			add_filter( 'option_mm_cache_settings', array( $this, 'cache_change' ) );
+			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_change' ), 10, 2 );
 		}
 
 		function purge_cron( $schedules ) {
@@ -400,7 +400,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function cache_change( $new_cache_settings ) {
+		function cache_change( $new_cache_settings, $old_cache_settings ) {
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
 				$this->toggle_nginx( $new_page_cache_value );
