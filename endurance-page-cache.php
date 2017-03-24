@@ -412,6 +412,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function toggle_nginx( $new_value = 0 ) {
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+				$domain = str_replace( 'www.', '', $domain );
 				$path = explode( 'public_html', __DIR__ );
 				if ( 2 !== count( $path ) ) {
 					return;
@@ -421,7 +422,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, $new_value );
+				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value );
 				@touch( '/etc/proxy_notify/' . $user );
 			}
 		}
