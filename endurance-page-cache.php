@@ -176,7 +176,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				wp_schedule_single_event( time() + 180, 'epc_purge_request', array( $value ) );
 				return true;
 			}
-			set_transient( 'epc_purged_' . md5( $value ), 60 );
+			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
 			$this->purged[] = md5( $value );
 			return false;
 		}
