@@ -36,13 +36,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
-
-				add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			}
 			if ( $this->is_enabled( 'browser' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
-
+			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'save_post', array( $this, 'save_post' ) );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
@@ -478,7 +476,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function cache_type_change( $new_cache_settings, $old_cache_settings ) {
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
-				$this->toggle_nginx( $new_page_cache_value );
+			}
+			if ( false === get_option( 'endurance_cache_level' ) ) {
+				if ( 1 == $new_page_cache_value ) {
+					update_option( 'endurance_cache_level', 2 );
+				} else {
+					update_option( 'endurance_cache_level', 0 );
+				}
 			}
 			return $new_cache_settings;
 		}
@@ -492,6 +496,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$cache_settings['page'] = 'enabled';
 				$cache_settings['browser'] = 'enabled';
 			}
+			update_option( 'mm_cache_settings', $cache_settings );
 			$this->toggle_nginx( $new_cache_level );
 			return $new_cache_level;
 		}
