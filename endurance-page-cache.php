@@ -504,7 +504,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$cache_settings['page'] = 'enabled';
 				$cache_settings['browser'] = 'enabled';
 			}
+			remove_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			update_option( 'mm_cache_settings', $cache_settings );
+			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			$this->toggle_nginx( $new_cache_level );
 			$this->update_level_expirations( $new_cache_level );
 			return $new_cache_level;
