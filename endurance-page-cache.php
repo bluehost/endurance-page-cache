@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Endurance Page Cache
-Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on an account.
+Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on a Bluehost account.
 Version: 0.5
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
@@ -28,14 +28,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function hooks() {
-			if ( $this->is_enabled() ) {
+			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
 
 				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents' ), 77 );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+			}
+			if ( $this->is_enabled( 'browser' ) ) {
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 
 			add_action( 'save_post', array( $this, 'save_post' ) );
@@ -320,7 +323,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $src;
 		}
 
-		function htaccess_contents( $rules ) {
+		function htaccess_contents_rewrites( $rules ) {
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
@@ -338,7 +341,30 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $additions . $rules;
 		}
 
-		function is_enabled() {
+		function htaccess_contents_expirations( $rules ) {
+			$default_files = array(
+				'image/jpg'       => '1 year',
+				'image/jpeg'      => '1 year',
+				'image/gif'       => '1 year',
+				'image/png'       => '1 year',
+				'text/css'        => '1 month',
+				'application/pdf' => '1 month',
+				'text/javascript' => '1 month',
+				'text/html'       => '2 hours',
+			);
+
+			$file_types = wp_parse_args( get_option( 'ebc_filetype_expirations', array() ), $default_files );
+
+			$additions = "<IfModule mod_expires.c>\n\tExpiresActive On\n\t";
+			foreach ( $file_types as $file_type => $expires ) {
+				$additions .= 'ExpiresByType ' . $file_type . ' "access plus ' . $expires . '"' . "\n\t";
+			}
+
+			$additions .= "ExpiresByType image/x-icon \"access plus 1 year\"\n\tExpiresDefault \"access plus 1 weeks\"\n</IfModule>\n";
+			return $additions . $rules;
+		}
+
+		function is_enabled( $type = 'page' ) {
 
 			$plugins = implode( ' ', get_option( 'active_plugins', array() ) );
 			if ( strpos( $plugins, 'cach' ) || strpos( $plugins, 'wp-rocket' ) ) {
@@ -361,18 +387,36 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
-				$valid_values = array( 'enabled', 'disabled' );
-				if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
-					$cache_settings['page'] = $_GET['epc_toggle'];
-					update_option( 'mm_cache_settings', $cache_settings );
-					header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+			if ( 'page' == $type ) {
+				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
+					$valid_values = array( 'enabled', 'disabled' );
+					if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
+						$cache_settings['page'] = $_GET['epc_toggle'];
+						update_option( 'mm_cache_settings', $cache_settings );
+						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+					}
+				}
+				if ( isset( $cache_settings['page'] ) && 'disabled' == $cache_settings['page'] ) {
+					return false;
+				} else {
+					return true;
 				}
 			}
-			if ( isset( $cache_settings['page'] ) && 'disabled' == $cache_settings['page'] ) {
-				return false;
-			} else {
-				return true;
+
+			if ( 'browser' == $type ) {
+				if ( isset( $_GET['ebc_toggle'] ) && is_admin() ) {
+					$valid_values = array( 'enabled', 'disabled' );
+					if ( in_array( $_GET['ebc_toggle'], $valid_values ) ) {
+						$cache_settings['browser'] = $_GET['ebc_toggle'];
+						update_option( 'mm_cache_settings', $cache_settings );
+						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+					}
+				}
+				if ( isset( $cache_settings['browser'] ) && 'disabled' == $cache_settings['browser'] ) {
+					return false;
+				} else {
+					return true;
+				}
 			}
 		}
 
