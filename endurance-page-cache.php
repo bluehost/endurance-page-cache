@@ -59,7 +59,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 
-			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_change' ), 10, 2 );
+			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
+			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 		}
 
 		function register_cache_settings() {
@@ -474,12 +475,25 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function cache_change( $new_cache_settings, $old_cache_settings ) {
+		function cache_type_change( $new_cache_settings, $old_cache_settings ) {
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
 				$this->toggle_nginx( $new_page_cache_value );
 			}
 			return $new_cache_settings;
+		}
+
+		function cache_level_change( $new_cache_level, $old_cache_level ) {
+			$cache_settings = get_option( 'mm_cache_settings' );
+			if ( 0 == $new_cache_level ) {
+				$cache_settings['page'] = 'disabled';
+				$cache_settings['browser'] = 'disabled';
+			} else {
+				$cache_settings['page'] = 'enabled';
+				$cache_settings['browser'] = 'enabled';
+			}
+			$this->toggle_nginx( $new_cache_level );
+			return $new_cache_level;
 		}
 
 		function toggle_nginx( $new_value = 0 ) {
