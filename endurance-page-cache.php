@@ -36,6 +36,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+
+				add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			}
 			if ( $this->is_enabled( 'browser' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
@@ -58,6 +60,41 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_change' ), 10, 2 );
+		}
+
+		function register_cache_settings() {
+			$section_name = 'epc_settings_section';
+			add_settings_section(
+				$section_name,
+				'Endurance Cache Setting',
+				'__return_false',
+				'general'
+			);
+			add_settings_field(
+				'endurance_cache_level',
+				'Cache Level',
+				array( $this, 'output_cache_settings' ),
+				'general',
+				$section_name,
+				array( 'field' => 'endurance_cache_level' )
+			);
+			register_setting( 'general', 'endurance_cache_level' );
+		}
+
+		function output_cache_settings( $args ) {
+			$cache_level = get_option( $args['field'], 2 );
+			echo "<select name='" . $args['field'] . "'>";
+			for ( $i = 0; $i < 5; $i++ ) {
+				if ( $i != $cache_level ) {
+					echo "<option value='" . $i . "'>";
+				} else {
+					echo "<option value='" . $i . "' selected='selected'>";
+				}
+
+				echo $i;
+				echo '</option>';
+			}
+			echo '</select>';
 		}
 
 		function purge_cron( $schedules ) {
