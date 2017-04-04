@@ -405,10 +405,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$additions = "<IfModule mod_expires.c>\n\tExpiresActive On\n\t";
 			foreach ( $file_types as $file_type => $expires ) {
-				$additions .= 'ExpiresByType ' . $file_type . ' "access plus ' . $expires . '"' . "\n\t";
+				if ( 'default' !== $file_type ) {
+					$additions .= 'ExpiresByType ' . $file_type . ' "access plus ' . $expires . '"' . "\n\t";
+				}
 			}
 
-			$additions .= "ExpiresByType image/x-icon \"access plus 1 year\"\n\tExpiresDefault \"access plus 6 hours\"\n</IfModule>\n";
+			$additions .= "ExpiresByType image/x-icon \"access plus 1 year\"\n\t";
+			if ( isset( $file_types['default'] ) ) {
+				$additions .= 'ExpiresDefault "access plus ' . $file_types['default'] . "\"\n";
+			} else {
+				$additions .= "ExpiresDefault \"access plus 6 hours\"\n";
+			}
+			$additions .= "</IfModule>\n";
 			return $additions . $rules;
 		}
 
@@ -528,7 +536,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'application/pdf' => '1 month',
 						'text/css'        => '1 year',
 						'text/javascript' => '1 year',
-						'text/html'       => '1 week',
+						'text/html'       => '24 hours',
+						'default'         => '1 week',
 					);
 					break;
 
@@ -538,10 +547,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'image/jpeg'      => '1 week',
 						'image/gif'       => '1 week',
 						'image/png'       => '1 week',
-						'text/css'        => '1 month',
+						'text/css'        => '1 week',
 						'application/pdf' => '1 week',
 						'text/javascript' => '1 month',
-						'text/html'       => '1 week',
+						'text/html'       => '3 hours',
+						'default'         => '1 week',
 					);
 					break;
 
@@ -551,10 +561,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'image/jpeg'      => '6 hours',
 						'image/gif'       => '6 hours',
 						'image/png'       => '6 hours',
-						'text/css'        => '1 week',
+						'text/css'        => '6 hours',
 						'application/pdf' => '1 week',
-						'text/javascript' => '1 week',
-						'text/html'       => '12 hours',
+						'text/javascript' => '6 hours',
+						'text/html'       => '10 minutes',
+						'default'         => '3 hours',
 					);
 					break;
 
@@ -564,10 +575,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'image/jpeg'      => '1 hour',
 						'image/gif'       => '1 hour',
 						'image/png'       => '1 hour',
-						'text/css'        => '6 hours',
+						'text/css'        => '1 hour',
 						'application/pdf' => '6 hours',
-						'text/javascript' => '6 hours',
-						'text/html'       => '2 hours',
+						'text/javascript' => '1 hour',
+						'text/html'       => '0 seconds',
+						'default'         => '10 minutes',
 					);
 					break;
 			}
