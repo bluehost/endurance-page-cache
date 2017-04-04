@@ -525,6 +525,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function update_level_expirations( $level ) {
+			$level = (int) $level;
 			$original_expirations = get_option( 'ebc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 4:
@@ -584,10 +585,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					break;
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
-			if ( false != $level ) {
-				update_option( 'ebc_filetype_expirations', $expirations );
-				save_mod_rewrite_rules();
-			}
+
+			update_option( 'ebc_filetype_expirations', $expirations );
+			save_mod_rewrite_rules();
+
 		}
 
 		function toggle_nginx( $new_value = 0 ) {
