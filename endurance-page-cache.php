@@ -175,7 +175,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function cache_headers() {
 			$cache_level = get_option( 'endurance_cache_level', 2 );
-			header( 'x-endurance-cache-level: ' . $cache_level );
+			header( 'X-Endurance-Cache-Level: ' . $cache_level );
 		}
 
 		function purge_cdn() {
