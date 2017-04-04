@@ -592,6 +592,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			} else {
 				update_option( 'ebc_filetype_expirations', $expirations );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 			save_mod_rewrite_rules();
 		}
