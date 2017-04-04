@@ -65,7 +65,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$section_name = 'epc_settings_section';
 			add_settings_section(
 				$section_name,
-				'Endurance Cache Setting',
+				'Endurance Cache',
 				'__return_false',
 				'general'
 			);
