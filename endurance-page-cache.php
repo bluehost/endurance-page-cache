@@ -586,9 +586,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
 
-			update_option( 'ebc_filetype_expirations', $expirations );
+			if ( 0 == $level ) {
+				delete_option( 'ebc_filetype_expirations' );
+				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
+			} else {
+				update_option( 'ebc_filetype_expirations', $expirations );
+			}
 			save_mod_rewrite_rules();
-
 		}
 
 		function toggle_nginx( $new_value = 0 ) {
