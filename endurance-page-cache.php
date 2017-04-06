@@ -294,37 +294,21 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE == true ) {
 				$return = false;
-			}
-
-			if ( 'private' == get_post_status() ) {
+			} elseif ( 'private' == get_post_status() ) {
 				$return = false;
-			}
-
-			if ( is_404() ) {
+			} elseif ( is_404() ) {
 				$return = false;
-			}
-
-			if ( is_admin() ) {
+			} elseif ( is_admin() ) {
 				$return = false;
-			}
-
-			if ( false === get_option( 'permalink_structure' ) ) {
+			} elseif ( false === get_option( 'permalink_structure' ) ) {
 				$return = false;
-			}
-
-			if ( is_user_logged_in() ) {
+			} elseif ( is_user_logged_in() ) {
 				$return = false;
-			}
-
-			if ( isset( $_GET ) && ! empty( $_GET ) ) {
+			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) {
 				$return = false;
-			}
-
-			if ( isset( $_POST ) && ! empty( $_POST ) ) {
+			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) {
 				$return = false;
-			}
-
-			if ( is_feed() ) {
+			} elseif ( is_feed() ) {
 				$return = false;
 			}
 
