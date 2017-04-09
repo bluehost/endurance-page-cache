@@ -58,6 +58,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 
+			add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'update' ) );
+
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 		}
@@ -594,6 +596,31 @@ Header set X-Endurance-Cache-Level "' . $this->cache_level . '"
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value );
 				@touch( '/etc/proxy_notify/' . $user );
 			}
+		}
+
+		function update( $checked_data ) {
+
+			$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+
+			if ( is_wp_error( $muplugins_details ) || ! isset( $muplugins_details['body'] ) ) {
+				return;
+			}
+
+			$mu_plugin = json_decode( $muplugins_details['body'], true );
+
+			if ( ! is_null( $mu_plugin ) ) {
+				foreach ( $mu_plugin as $slug => $info ) {
+					if ( isset( $info['constant'] ) && defined( $info['constant'] ) ) {
+						if ( (float) $info['version'] > (float) constant( $info['constant'] ) ) {
+							$file = wp_remote_get( $info['source'] );
+							if ( ! is_wp_error( $file ) && isset( $file['body'] ) && strpos( $file['body'], $info['constant'] ) ) {
+								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] );
+							}
+						}
+					}
+				}
+			}
+			return $checked_data;
 		}
 	}
 	$epc = new Endurance_Page_Cache;
