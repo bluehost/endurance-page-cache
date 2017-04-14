@@ -36,12 +36,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
+				add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
+
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 			}
 			if ( $this->is_enabled( 'browser' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
-			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'save_post', array( $this, 'save_post' ) );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
