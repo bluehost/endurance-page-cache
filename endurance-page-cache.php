@@ -20,7 +20,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'DOING_AJAX' ) ) {return;}
 			$this->hooks();
 			$this->purged = array();
-			$this->cache_level = get_option( 'endurance_cache_level' );
+			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%', '=', '@', '&', ':', ';' );
 			if ( ! wp_next_scheduled( 'epc_purge' ) ) {
