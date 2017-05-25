@@ -361,6 +361,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function htaccess_contents_rewrites( $rules ) {
+			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
+				$this->cache_level = 2;
+			}
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
