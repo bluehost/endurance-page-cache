@@ -217,7 +217,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function purge_throttle( $value ) {
 			$purged = get_transient( 'epc_purged_' . md5( $value ) );
 			if ( true == $purged || in_array( md5( $value ), $this->purged ) ) {
-				wp_schedule_single_event( time() + 180, 'epc_purge_request', array( $value ) );
+				if ( false === wp_next_scheduled( 'epc_purge_request', array( $value ) ) ) {
+					wp_schedule_single_event( time() + 180, 'epc_purge_request', array( $value ) );
+				}
 				return true;
 			}
 			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
