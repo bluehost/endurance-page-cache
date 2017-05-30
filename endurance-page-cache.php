@@ -20,6 +20,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'DOING_AJAX' ) ) {return;}
 			$this->hooks();
 			$this->purged = array();
+			$this->trigger = null;
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%', '=', '@', '&', ':', ';' );
@@ -32,9 +33,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
-
-				add_filter( 'style_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
-				add_filter( 'script_loader_src', array( $this, 'remove_wp_ver_css_js' ), 9999 );
 
 				add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 
@@ -113,6 +111,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 			if ( $old_value !== $new_value ) {
+				$this->purge_trigger = 'option_update_' . $option;
 				$this->purge_all();
 			}
 		}
@@ -228,16 +227,21 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function purge_request( $uri ) {
+			global $wp_version;
 			if ( true === $this->purge_throttle( $uri ) ) {
 				return;
 			}
 			$siteurl = get_option( 'siteurl' );
 			$uri = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
+
+			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
+
 			$args = array(
 				'method' => 'PURGE',
 				'headers' => array(
 					'host'   => str_replace( array( 'http://', 'https://' ), '', $siteurl ),
 				),
+				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() .'; EPC/v' . EPC_VERSION . '/' . $trigger,
 			);
 			wp_remote_request( $uri, $args );
 			if ( 'http://127.0.0.1:8080/.*' == $uri ) {
@@ -483,6 +487,7 @@ Header set X-Endurance-Cache-Level "' . $this->cache_level . '"
 
 		function do_purge_all() {
 			if ( isset( $_GET['epc_purge_all'] ) ) {
+				$this->trigger = 'manual_purge';
 				$this->purge_all();
 				header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 			}
