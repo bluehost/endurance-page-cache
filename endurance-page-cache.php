@@ -523,7 +523,7 @@ Header set X-Endurance-Cache-Level "' . $this->cache_level . '"
 		}
 
 		function do_purge() {
-			if ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) {
+			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() ) {
 				if ( isset( $_GET['epc_purge_all'] ) ) {
 					$this->trigger = 'toolbar_manual_all';
 					$this->purge_all();
