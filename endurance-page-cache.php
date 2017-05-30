@@ -41,6 +41,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->is_enabled( 'browser' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
+
 			add_action( 'save_post', array( $this, 'save_post' ) );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
@@ -53,7 +54,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
 
-			add_action( 'admin_init', array( $this, 'do_purge_all' ) );
+			add_action( 'admin_bar_menu', array( $this, 'admin_toolbar' ), 99 );
+
+			add_action( 'init', array( $this, 'do_purge' ) );
 
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
 
@@ -63,11 +66,45 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 		}
 
+		function admin_toolbar( $wp_admin_bar ) {
+			$args = array(
+				'id'    => 'epc_purge_menu',
+				'title' => 'Caching',
+			);
+			$wp_admin_bar->add_node( $args );
+
+			$args = array(
+				'id'     => 'epc_purge_menu-purge_all',
+				'title'  => 'Purge All',
+				'parent' => 'epc_purge_menu',
+				'href'   => add_query_arg( array( 'epc_purge_all' => true ) ),
+			);
+			$wp_admin_bar->add_node( $args );
+
+			if ( ! is_admin() ) {
+				$args = array(
+					'id'     => 'epc_purge_menu-purge_single',
+					'title'  => 'Purge This Page',
+					'parent' => 'epc_purge_menu',
+					'href'   => add_query_arg( array( 'epc_purge_single' => true ) ),
+				);
+				$wp_admin_bar->add_node( $args );
+			}
+
+			$args = array(
+				'id'     => 'epc_purge_menu-cache_settings',
+				'title'  => 'Cache Settings',
+				'parent' => 'epc_purge_menu',
+				'href'   => admin_url( 'options-general.php#epc_settings' ),
+			);
+			$wp_admin_bar->add_node( $args );
+		}
+
 		function register_cache_settings() {
 			$section_name = 'epc_settings_section';
 			add_settings_section(
 				$section_name,
-				'Endurance Cache',
+				'<span id="epc_settings">Endurance Cache</span>',
 				'__return_false',
 				'general'
 			);
@@ -85,14 +122,21 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		function output_cache_settings( $args ) {
 			$cache_level = get_option( $args['field'], 2 );
 			echo "<select name='" . $args['field'] . "'>";
-			for ( $i = 0; $i < 5; $i++ ) {
+			$cache_levels = array(
+				0 => 'Off',
+				1 => 'Assets Only',
+				2 => 'Normal',
+				3 => 'Advanced',
+				4 => 'Agressive',
+			);
+			foreach ( $cache_levels as $i => $label ) {
 				if ( $i != $cache_level ) {
 					echo "<option value='" . $i . "'>";
 				} else {
 					echo "<option value='" . $i . "' selected='selected'>";
 				}
 
-				echo $i;
+				echo $label . ' (Level ' . $i . ')';
 				echo '</option>';
 			}
 			echo '</select>';
@@ -478,11 +522,16 @@ Header set X-Endurance-Cache-Level "' . $this->cache_level . '"
 			return $links;
 		}
 
-		function do_purge_all() {
-			if ( isset( $_GET['epc_purge_all'] ) ) {
-				$this->trigger = 'manual_purge';
-				$this->purge_all();
-				header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
+		function do_purge() {
+			if ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) {
+				if ( isset( $_GET['epc_purge_all'] ) ) {
+					$this->trigger = 'toolbar_manual_all';
+					$this->purge_all();
+				} else {
+					$this->trigger = 'toolbar_manual_single';
+					$this->purge_single( get_option( 'siteurl' ) . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
+				}
+				header( 'Location: ' . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
 			}
 		}
 
