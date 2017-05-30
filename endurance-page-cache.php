@@ -359,13 +359,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function remove_wp_ver_css_js( $src ) {
-			if ( strpos( $src, 'ver=' ) ) {
-				$src = remove_query_arg( 'ver', $src );
-			}
-			return $src;
-		}
-
 		function htaccess_contents_rewrites( $rules ) {
 			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
 				$this->cache_level = 2;
