@@ -151,9 +151,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			if ( false !== strpos( $option, '_transient' ) ) {
-				return;
+			$exempt_options = array( '_transient', 'cron', 'session' );
+			foreach ( $exempt_options as $exempt_option ) {
+				if ( false !== strpos( $option, $exempt_option ) ) {
+					return;
+				}
 			}
+
 			if ( $old_value !== $new_value ) {
 				$this->purge_trigger = 'option_update_' . $option;
 				$this->purge_all();
@@ -525,10 +529,10 @@ Header set X-Endurance-Cache-Level "' . $this->cache_level . '"
 		function do_purge() {
 			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() ) {
 				if ( isset( $_GET['epc_purge_all'] ) ) {
-					$this->trigger = 'toolbar_manual_all';
+					$this->purge_trigger = 'toolbar_manual_all';
 					$this->purge_all();
 				} else {
-					$this->trigger = 'toolbar_manual_single';
+					$this->purge_trigger = 'toolbar_manual_single';
 					$this->purge_single( get_option( 'siteurl' ) . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
 				}
 				header( 'Location: ' . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
