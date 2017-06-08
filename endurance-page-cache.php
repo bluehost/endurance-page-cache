@@ -21,6 +21,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->hooks();
 			$this->purged = array();
 			$this->trigger = null;
+			$this->force_purge = false;
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%', '=', '@', '&', ':', ';' );
@@ -259,7 +260,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function purge_throttle( $value ) {
 			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( true == $purged || in_array( md5( $value ), $this->purged ) ) {
+			if ( ( true == $purged || in_array( md5( $value ), $this->purged ) ) && false == $this->force_purge ) {
 				return true;
 			}
 			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
@@ -524,6 +525,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function do_purge() {
 			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() ) {
+				$this->force_purge = true;
 				if ( isset( $_GET['epc_purge_all'] ) ) {
 					$this->purge_trigger = 'toolbar_manual_all';
 					$this->purge_all();
