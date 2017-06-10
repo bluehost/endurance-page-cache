@@ -161,7 +161,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function comment( $comment_id, $comment_approved ) {
+		function comment( $comment_id, $comment_approved = false ) {
 			$comment = get_comment( $comment_id );
 			if ( property_exists( $comment, 'comment_post_ID' ) ) {
 				$post_url = get_permalink( $comment->comment_post_ID );
