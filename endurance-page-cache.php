@@ -42,7 +42,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_action( 'save_post', array( $this, 'save_post' ) );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
-			add_action( 'comment_post', array( $this, 'comment' ) );
+			add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
 
 			add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
 
@@ -161,7 +161,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function comment( $comment_id, $comment_approved ) {
+		function comment( $comment_id, $comment_approved = null ) {
 			$comment = get_comment( $comment_id );
 			if ( property_exists( $comment, 'comment_post_ID' ) ) {
 				$post_url = get_permalink( $comment->comment_post_ID );
