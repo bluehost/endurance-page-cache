@@ -18,6 +18,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 		function __construct() {
 			if ( defined( 'DOING_AJAX' ) ) {return;}
+			if ( isset( $_GET['doing_wp_cron'] ) ) {return;}
 			$this->hooks();
 			$this->purged = array();
 			$this->trigger = null;
