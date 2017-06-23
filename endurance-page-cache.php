@@ -149,7 +149,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			$exempt_options = array( '_transient', 'cron', 'session', 'sync', 'schedul', 'user_hit_count', 'jetpack_prevent', 'rewrite_rules', 'tribe_last', 'wordfence', 'traffic' );
+			$exempt_options = array( '_transient', 'cron', 'session', 'sync', 'schedul', 'user_hit_count', 'jetpack_protect', 'rewrite_rules', 'tribe_last', 'wordfence', 'traffic', 'stats' );
 			foreach ( $exempt_options as $exempt_option ) {
 				if ( false !== strpos( $option, $exempt_option ) ) {
 					return;
