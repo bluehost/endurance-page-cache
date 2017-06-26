@@ -65,37 +65,39 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function admin_toolbar( $wp_admin_bar ) {
-			$args = array(
-				'id'    => 'epc_purge_menu',
-				'title' => 'Caching',
-			);
-			$wp_admin_bar->add_node( $args );
-
-			$args = array(
-				'id'     => 'epc_purge_menu-purge_all',
-				'title'  => 'Purge All',
-				'parent' => 'epc_purge_menu',
-				'href'   => add_query_arg( array( 'epc_purge_all' => true ) ),
-			);
-			$wp_admin_bar->add_node( $args );
-
-			if ( ! is_admin() ) {
+			if ( current_user_can( 'manage_options' ) ) {
 				$args = array(
-					'id'     => 'epc_purge_menu-purge_single',
-					'title'  => 'Purge This Page',
+					'id'    => 'epc_purge_menu',
+					'title' => 'Caching',
+				);
+				$wp_admin_bar->add_node( $args );
+
+				$args = array(
+					'id'     => 'epc_purge_menu-purge_all',
+					'title'  => 'Purge All',
 					'parent' => 'epc_purge_menu',
-					'href'   => add_query_arg( array( 'epc_purge_single' => true ) ),
+					'href'   => add_query_arg( array( 'epc_purge_all' => true ) ),
+				);
+				$wp_admin_bar->add_node( $args );
+
+				if ( ! is_admin() ) {
+					$args = array(
+						'id'     => 'epc_purge_menu-purge_single',
+						'title'  => 'Purge This Page',
+						'parent' => 'epc_purge_menu',
+						'href'   => add_query_arg( array( 'epc_purge_single' => true ) ),
+					);
+					$wp_admin_bar->add_node( $args );
+				}
+
+				$args = array(
+					'id'     => 'epc_purge_menu-cache_settings',
+					'title'  => 'Cache Settings',
+					'parent' => 'epc_purge_menu',
+					'href'   => admin_url( 'options-general.php#epc_settings' ),
 				);
 				$wp_admin_bar->add_node( $args );
 			}
-
-			$args = array(
-				'id'     => 'epc_purge_menu-cache_settings',
-				'title'  => 'Cache Settings',
-				'parent' => 'epc_purge_menu',
-				'href'   => admin_url( 'options-general.php#epc_settings' ),
-			);
-			$wp_admin_bar->add_node( $args );
 		}
 
 		function register_cache_settings() {
@@ -525,7 +527,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function do_purge() {
-			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() ) {
+			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 				$this->force_purge = true;
 				if ( isset( $_GET['epc_purge_all'] ) ) {
 					$this->purge_trigger = 'toolbar_manual_all';
