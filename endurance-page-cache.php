@@ -462,9 +462,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function is_enabled( $type = 'page' ) {
 
-			$plugins = implode( ' ', get_option( 'active_plugins', array() ) );
-			if ( strpos( $plugins, 'cach' ) || strpos( $plugins, 'wp-rocket' ) ) {
-				return false;
+			$plugins = get_option( 'active_plugins', array() );
+			if ( ! empty( $plugins ) ) {
+				$plugins = implode( ' ', $plugins );
+				if ( strpos( $plugins, 'cach' ) || strpos( $plugins, 'wp-rocket' ) ) {
+					return false;
+				}
 			}
 
 			$active_theme = array(
