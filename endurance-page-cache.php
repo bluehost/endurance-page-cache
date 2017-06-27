@@ -199,7 +199,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		function edit_terms( $term_id, $taxonomy ) {
 			$url = get_term_link( $term_id );
-			$this->purge_single( $url );
+			if ( ! is_wp_error( $url ) ) {
+				$this->purge_single( $url );
+			}
 		}
 
 		function write( $page ) {
