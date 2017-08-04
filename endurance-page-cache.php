@@ -34,6 +34,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'shutdown', array( $this, 'finish' ) );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
 			}
 			if ( $this->is_enabled( 'browser' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
@@ -649,6 +650,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 			save_mod_rewrite_rules();
+		}
+
+		function config_nginx() {
+			$this->toggle_nginx( $this->cache_level );
 		}
 
 		function toggle_nginx( $new_value = 0 ) {
