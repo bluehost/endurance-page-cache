@@ -23,11 +23,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->purged = array();
 			$this->trigger = null;
 			$this->force_purge = false;
-			$this->cache_level = get_option( 'endurance_cache_level', null );
-			if ( is_null( $this->cache_level ) ) {
-				update_option( 'endurance_cache_level', 2 );
-				$this->cache_level = 2;
-			}
+			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%', '=', '@', '&', ':', ';' );
 		}
