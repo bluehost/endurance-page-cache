@@ -66,7 +66,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function admin_toolbar( $wp_admin_bar ) {
-			if ( current_user_can( 'manage_options' ) && $this->is_enabled ) {
+			if ( current_user_can( 'manage_options' ) && $this->is_enabled() ) {
 				$args = array(
 					'id'    => 'epc_purge_menu',
 					'title' => 'Caching',
