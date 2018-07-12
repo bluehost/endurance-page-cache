@@ -639,17 +639,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					break;
 
 				case 0:
-					$new_expirations = array(
-						'image/jpg'       => '0 seconds',
-						'image/jpeg'      => '0 seconds',
-						'image/gif'       => '0 seconds',
-						'image/png'       => '0 seconds',
-						'text/css'        => '0 seconds',
-						'application/pdf' => '0 seconds',
-						'text/javascript' => '0 seconds',
-						'text/html'       => '0 seconds',
-						'default'         => '0 seconds',
-					);
+					$new_expirations = array();
 					break;
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
