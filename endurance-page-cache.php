@@ -637,6 +637,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'default'         => '10 minutes',
 					);
 					break;
+
+				case 0:
+					$new_expirations = array();
+					break;
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
 
