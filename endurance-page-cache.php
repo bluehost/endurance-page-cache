@@ -414,20 +414,20 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
-			$additions = 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n";
+			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
 
 			if ( false === strpos( __DIR__, 'public_html' ) ) {
 				$additions .= 'Options -Indexes ' . "\n" . '
-<IfModule mod_rewrite.c>
-	RewriteEngine On
-	RewriteBase ' . $base . '
-	RewriteRule ^' . $cache_url . '/ - [L]
-	RewriteCond %{REQUEST_METHOD} !POST
-	RewriteCond %{QUERY_STRING} !.*=.*
-	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
-	RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
-	RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
-</IfModule>' . "\n";
+				<IfModule mod_rewrite.c>
+					RewriteEngine On
+					RewriteBase ' . $base . '
+					RewriteRule ^' . $cache_url . '/ - [L]
+					RewriteCond %{REQUEST_METHOD} !POST
+					RewriteCond %{QUERY_STRING} !.*=.*
+					RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
+					RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
+					RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
+				</IfModule>' . "\n";
 			}
 			return $additions . $rules;
 		}
