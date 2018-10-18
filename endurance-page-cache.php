@@ -638,7 +638,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					);
 					break;
 
-				case 0:
+				default:
 					$new_expirations = array();
 					break;
 			}
