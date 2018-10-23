@@ -25,7 +25,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->force_purge = false;
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', 'wp-json', '%', '=', '@', '&', ':', ';' );
+			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', rest_get_url_prefix(), '%', '=', '@', '&', ':', ';' );
 		}
 
 		function hooks() {
