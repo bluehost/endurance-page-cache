@@ -152,17 +152,99 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		function option_handler( $option, $old_value, $new_value ) {
-			$exempt_options = array( '_transient', 'cron', 'session', 'sync', 'schedul', 'user_hit_count', 'jetpack_protect', 'rewrite_rules', 'tribe_last', 'wordfence', 'traffic', 'stats' );
-			foreach ( $exempt_options as $exempt_option ) {
-				if ( false !== strpos( $option, $exempt_option ) ) {
-					return;
+			// No need to process if nothing was updated
+			if ( $old_value === $new_value ) {
+				return false;
+			}
+
+			$option_name = str_replace( '-', '_', strtolower( $option ) );
+
+			$exempt_if_equals = array(
+				'active_plugins'    => true,
+				'html_type'         => true,
+				'fs_accounts'       => true,
+				'rewrite_rules'     => true,
+				'uninstall_plugins' => true,
+				'wp_user_roles'     => true,
+			);
+
+			// If we have an exact match, we can just stop here.
+			if ( array_key_exists( $option, $exempt_if_equals ) ) {
+				return false;
+			}
+
+			$force_if_contains = array(
+				'html',
+			);
+
+			$exempt_if_contains = array(
+				'_404s',
+				'_active',
+				'_activated',
+				'_activation',
+				'_attempts',
+				'_available',
+				'_blacklist',
+				'_cache_validator',
+				'_checksum',
+				'_config',
+				'_count',
+				'_dectivated',
+				'_disable',
+				'_enable',
+				'_errors',
+				'_inactive',
+				'_installed',
+				'_key',
+				'_last_',
+				'_license',
+				'_log',
+				'_mode',
+				'_options',
+				'_pageviews',
+				'_redirects',
+				'_rules',
+				'_schedule',
+				'_session',
+				'_settings',
+				'_stats',
+				'_status',
+				'_statistics',
+				'_supports',
+				'_sync',
+				'_task',
+				'_time',
+				'_token',
+				'_traffic',
+				'_transient',
+				'_version',
+				'_views',
+				'_whitelist',
+				'cron',
+				'nonce',
+			);
+
+			$force_purge = false;
+
+			foreach ( $force_if_contains as $slug ) {
+				if ( false !== strpos( $option_name, $slug ) ) {
+					$force_purge = true;
+					break;
 				}
 			}
 
-			if ( $old_value !== $new_value ) {
-				$this->purge_trigger = 'option_update_' . $option;
-				$this->purge_all();
+			if ( ! $force_purge ) {
+				foreach ( $exempt_if_contains as $slug ) {
+					if ( false !== strpos( $option_name, $slug ) ) {
+						return false;
+					}
+				}
 			}
+
+			$this->purge_trigger = 'option_update_' . $option;
+			$this->purge_all();
+
+			return true;
 		}
 
 		function comment( $comment_id, $comment_approved = null ) {
