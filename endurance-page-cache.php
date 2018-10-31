@@ -160,16 +160,16 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$option_name = str_replace( '-', '_', strtolower( $option ) );
 
 			$exempt_if_equals = array(
-				'active_plugins',
-				'html_type',
-				'fs_accounts',
-				'rewrite_rules',
-				'uninstall_plugins',
-				'wp_user_roles',
+				'active_plugins'    => true,
+				'html_type'         => true,
+				'fs_accounts'       => true,
+				'rewrite_rules'     => true,
+				'uninstall_plugins' => true,
+				'wp_user_roles'     => true,
 			);
 
 			// If we have an exact match, we can just stop here.
-			if ( in_array( $option, $exempt_if_equals ) ) {
+			if ( array_key_exists( $option, $exempt_if_equals ) ) {
 				return false;
 			}
 
@@ -229,6 +229,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			foreach ( $force_if_contains as $slug ) {
 				if ( false !== strpos( $option_name, $slug ) ) {
 					$force_purge = true;
+					break;
 				}
 			}
 
