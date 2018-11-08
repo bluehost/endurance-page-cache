@@ -363,17 +363,22 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			$siteurl = get_option( 'siteurl' );
 			$uri = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
+			$urihttps = str_replace( $siteurl, 'https://127.0.0.1:8443', $uri );
 
 			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
 
 			$args = array(
 				'method' => 'PURGE',
+				'timeout' => '5',
+				'sslverify' => false,
 				'headers' => array(
 					'host'   => str_replace( array( 'http://', 'https://' ), '', $siteurl ),
 				),
 				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() .'; EPC/v' . EPC_VERSION . '/' . $trigger,
 			);
 			wp_remote_request( $uri, $args );
+			wp_remote_request( $urihttps, $args );
+
 			if ( 'http://127.0.0.1:8080/.*' == $uri ) {
 				$this->purge_cdn();
 			}
