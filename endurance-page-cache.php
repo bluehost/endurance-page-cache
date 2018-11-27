@@ -2,7 +2,7 @@
 /*
 Plugin Name: Endurance Page Cache
 Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
-Version: 1.2
+Version: 1.3
 Author: Mike Hansen
 Author URI: https://www.mikehansen.me/
 License: GPLv2 or later
@@ -12,7 +12,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) { die; }
 
-define( 'EPC_VERSION', 1.2 );
+define( 'EPC_VERSION', 1.3 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
