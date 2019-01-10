@@ -523,7 +523,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'text/css'        => '1 month',
 				'application/pdf' => '1 month',
 				'text/javascript' => '1 month',
-				'text/html'       => '2 hours',
+				'text/html'       => '5 minutes',
 			);
 
 			$file_types = wp_parse_args( get_option( 'ebc_filetype_expirations', array() ), $default_files );
@@ -673,7 +673,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'application/pdf' => '1 month',
 						'text/css'        => '1 year',
 						'text/javascript' => '1 year',
-						'text/html'       => '24 hours',
+						'text/html'       => '5 minutes',
 						'default'         => '1 week',
 					);
 					break;
@@ -687,7 +687,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'text/css'        => '1 week',
 						'application/pdf' => '1 week',
 						'text/javascript' => '1 month',
-						'text/html'       => '3 hours',
+						'text/html'       => '5 minutes',
 						'default'         => '1 week',
 					);
 					break;
@@ -701,7 +701,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'text/css'        => '6 hours',
 						'application/pdf' => '1 week',
 						'text/javascript' => '6 hours',
-						'text/html'       => '10 minutes',
+						'text/html'       => '5 minutes',
 						'default'         => '3 hours',
 					);
 					break;
@@ -716,7 +716,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'application/pdf' => '6 hours',
 						'text/javascript' => '1 hour',
 						'text/html'       => '0 seconds',
-						'default'         => '10 minutes',
+						'default'         => '5 minutes',
 					);
 					break;
 
