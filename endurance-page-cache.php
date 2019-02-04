@@ -576,7 +576,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			return apply_filters( 'epc_is_cachable', $return );
+			return (bool) apply_filters( 'epc_is_cachable', $return );
 		}
 
 		/**
@@ -735,6 +735,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					return true;
 				}
 			}
+
+			return false;
 		}
 
 		/**
@@ -816,7 +818,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_level = $new_cache_level;
 			$this->toggle_nginx( $new_cache_level );
 			$this->update_level_expirations( $new_cache_level );
-			return $new_cache_level;
+
+			return (int) $new_cache_level;
 		}
 
 			$level = (int) $level;
@@ -944,7 +947,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 
 			if ( is_wp_error( $muplugins_details ) || ! isset( $muplugins_details['body'] ) ) {
-				return;
+				return $checked_data;
 			}
 
 			$mu_plugin = json_decode( $muplugins_details['body'], true );
