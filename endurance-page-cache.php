@@ -350,7 +350,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 		/**
 		 * Write page content to cache.
 		 *
@@ -359,6 +358,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function write( $page ) {
+			$base = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 
 			if ( false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
 				$this->path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
@@ -391,8 +391,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function purge_cdn() {
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$endpoint = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
-				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$query = add_query_arg( array( 'domain' => $domain ), $endpoint );
+				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$refresh_token = get_option( '_mm_refresh_token' );
 				if ( false === $refresh_token ) {
 					return;
@@ -450,7 +450,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$urihttps = str_replace( $siteurl, 'https://127.0.0.1:8443', $uri );
 			$urihttp = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
-			$domain = parse_url( $siteurl, PHP_URL_HOST );
+			$domain   = wp_parse_url( $siteurl, PHP_URL_HOST );
 
 			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
 
@@ -612,7 +612,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
 				$this->cache_level = 2;
 			}
-			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
+			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
 			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
@@ -910,13 +910,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 			if ( false !== strpos( __DIR__, 'public_html' ) ) {
-				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 		/**
 		 * Toggle nginx caching.
 		 *
 		 * @param int $new_value Cache level
 		 */
 		public function toggle_nginx( $new_value = 0 ) {
+				$domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$domain = str_replace( 'www.', '', $domain );
 				$path = explode( 'public_html', __DIR__ );
 				if ( 2 !== count( $path ) ) {
