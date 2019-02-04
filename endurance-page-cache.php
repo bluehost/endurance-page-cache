@@ -154,7 +154,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function output_cache_settings( $args ) {
 			$cache_level = get_option( $args['field'], 2 );
-			echo "<select name='" . $args['field'] . "'>";
+			echo '<select name="' . esc_attr( $args['field'] ) . '">';
 			$cache_levels = array(
 				0 => 'Off',
 				1 => 'Assets Only',
@@ -164,12 +164,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			);
 			foreach ( $cache_levels as $i => $label ) {
 				if ( $i != $cache_level ) {
-					echo "<option value='" . $i . "'>";
+					echo '<option value="' . absint( $i ) . '"">';
 				} else {
-					echo "<option value='" . $i . "' selected='selected'>";
+					echo '<option value="' . absint( $i ) . '" selected="selected">';
 				}
 
-				echo $label . ' (Level ' . $i . ')';
+				echo esc_html( $label ) . ' (Level ' . absint( $i ) . ')';
 				echo '</option>';
 			}
 			echo '</select>';
