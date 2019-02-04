@@ -168,14 +168,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			echo '</select>';
 		}
 
-		function purge_cron( $schedules ) {
-			$schedules['epc_weekly'] = array(
-				'interval' => WEEK_IN_SECONDS,
-				'display'  => esc_html__( 'Weekly' ),
-			);
-			return $schedules;
-		}
-
 		function option_handler( $option, $old_value, $new_value ) {
 		/**
 		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
@@ -510,15 +502,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
 			}
-		}
-
-		function minify( $content ) {
-			$content = str_replace( "\r", '', $content );
-			$content = str_replace( "\n", '', $content );
-			$content = str_replace( "\t", '', $content );
-			$content = str_replace( '  ', ' ', $content );
-			$content = trim( $content );
-			return $content;
 		}
 
 		function uri_to_cache( $uri ) {
