@@ -391,9 +391,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function purge_cdn() {
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
-				$endpoint = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
-				$query = add_query_arg( array( 'domain' => $domain ), $endpoint );
+				$endpoint      = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
 				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+				$query         = add_query_arg( array( 'domain' => $domain ), $endpoint );
 				$refresh_token = get_option( '_mm_refresh_token' );
 				if ( false === $refresh_token ) {
 					return;
@@ -407,14 +407,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 
 				$path_hash = bin2hex( $path );
-				$headers = array(
+				$headers   = array(
 					'x-api-refresh-token' => $refresh_token,
-					'x-api-path' => $path_hash,
+					'x-api-path'          => $path_hash,
 				);
-				$args = array(
-					'timeout'     => 1,
-					'blocking'    => false,
-					'headers'     => $headers,
+				$args      = array(
+					'timeout'  => 1,
+					'blocking' => false,
+					'headers'  => $headers,
 				);
 				$response = wp_remote_get( $query, $args );
 			}
@@ -451,24 +451,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$siteurl = get_option( 'siteurl' );
 
 			$urihttps = str_replace( $siteurl, 'https://127.0.0.1:8443', $uri );
-			$urihttp = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
+			$urihttp  = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
 			$domain   = wp_parse_url( $siteurl, PHP_URL_HOST );
 
 			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
 
 			$args = array(
-				'method' => 'PURGE',
-				'timeout' => '5',
-				'sslverify' => false,
-				'headers' => array(
-					'host'   => $domain,
+				'method'     => 'PURGE',
+				'timeout'    => '5',
+				'sslverify'  => false,
+				'headers'    => array(
+					'host' => $domain,
 				),
-				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() .'; EPC/v' . EPC_VERSION . '/' . $trigger,
+				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() . '; EPC/v' . EPC_VERSION . '/' . $trigger,
 			);
 			wp_remote_request( $urihttp, $args );
 			wp_remote_request( $urihttps, $args );
 
-			if ( preg_match('/\.\*$/',$uri) ) {
+			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
 			}
 		}
@@ -695,7 +695,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$active_theme = array(
 				'stylesheet' => get_option( 'stylesheet' ),
-				'template' => get_option( 'template' ),
+				'template'   => get_option( 'template' ),
 			);
 
 			$active_theme = implode( ' ', $active_theme );
@@ -812,11 +812,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function cache_level_change( $new_cache_level, $old_cache_level ) {
 			$cache_settings = get_option( 'mm_cache_settings' );
-				$cache_settings['page'] = 'disabled';
 			if ( 0 === $new_cache_level ) {
+				$cache_settings['page']    = 'disabled';
 				$cache_settings['browser'] = 'disabled';
 			} else {
-				$cache_settings['page'] = 'enabled';
+				$cache_settings['page']    = 'enabled';
 				$cache_settings['browser'] = 'enabled';
 			}
 			remove_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
@@ -829,13 +829,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return (int) $new_cache_level;
 		}
 
-			$level = (int) $level;
 		/**
 		 * Update cache expirations rules in .htaccess based on cache level.
 		 *
 		 * @param int $level Cache level
 		 */
 		public function update_level_expirations( $level ) {
+			$level                = (int) $level;
 			$original_expirations = get_option( 'ebc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 4:
