@@ -21,11 +21,29 @@
       "email": "micah@wpscholar.com"
     }
   ],
-  "require": {},
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://satis.wpteamhub.com"
+    }
+  ],
+  "require": {
+  },
   "require-dev": {
+    "bluehost/wp-php-standards": "^1.0",
     "phpunit/phpunit": "^7.4"
   },
   "scripts": {
+    "lint": [
+      "vendor/bin/phpcs --ignore=*/vendor/* ."
+    ],
     "phpunit": "./vendor/bin/phpunit -c phpunit.xml"
+  },
+  "extra": {
+    "phpcs-config": {
+      "colors": true,
+      "default_standard": "Bluehost",
+      "testVersion": "5.2-"
+    }
   }
 }
