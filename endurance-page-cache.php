@@ -946,5 +946,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $checked_data;
 		}
 	}
-	$epc = new Endurance_Page_Cache;
+
+	$epc = new Endurance_Page_Cache();
 }
