@@ -326,7 +326,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			if ( $post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) ) ) {
+			$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
+			if ( $post_type_archive ) {
 				$this->purge_single( $post_type_archive );
 			}
 
