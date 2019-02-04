@@ -416,7 +416,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					'blocking' => false,
 					'headers'  => $headers,
 				);
-				$response = wp_remote_get( $query, $args );
+				wp_remote_get( $query, $args );
 			}
 		}
 
