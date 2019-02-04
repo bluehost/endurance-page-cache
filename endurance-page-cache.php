@@ -382,6 +382,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			} else {
 				nocache_headers();
 			}
+
 			return $page;
 		}
 
@@ -433,6 +434,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
 			$this->purged[] = md5( $value );
+
 			return false;
 		}
 
@@ -533,6 +535,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function uri_to_cache( $uri ) {
 			$path = str_replace( get_site_url(), '', $uri );
+
 			return $this->cache_dir . $path . '_index.html';
 		}
 
@@ -630,6 +633,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
 				</IfModule>' . "\n";
 			}
+
 			return $additions . $rules;
 		}
 
@@ -668,6 +672,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$additions .= "ExpiresDefault \"access plus 6 hours\"\n";
 			}
 			$additions .= "</IfModule>\n";
+
 			return $additions . $rules;
 		}
 
@@ -753,6 +758,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
 			$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => 'true' ) ) . '">Purge Cache</a>';
+
 			return $links;
 		}
 
@@ -792,6 +798,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					update_option( 'endurance_cache_level', 0 );
 				}
 			}
+
 			return $new_cache_settings;
 		}
 
@@ -964,6 +971,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					}
 				}
 			}
+
 			return $checked_data;
 		}
 	}
