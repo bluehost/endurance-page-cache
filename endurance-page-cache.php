@@ -288,7 +288,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function comment( $comment_id ) {
 			$comment = get_comment( $comment_id );
-			if ( property_exists( $comment, 'comment_post_ID' ) ) {
+			if ( $comment && property_exists( $comment, 'comment_post_ID' ) ) {
 				$post_url = get_permalink( $comment->comment_post_ID );
 				$this->purge_single( $post_url );
 			}
