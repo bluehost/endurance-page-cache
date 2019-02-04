@@ -24,12 +24,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	 * Class Endurance_Page_Cache
 	 */
 	class Endurance_Page_Cache {
-		function __construct() {
 			if ( defined( 'DOING_AJAX' ) ) {return;}
 			if ( isset( $_GET['doing_wp_cron'] ) ) {return;}
 		/**
 		 * Endurance_Page_Cache constructor.
 		 */
+		public function __construct() {
 			$this->hooks();
 			$this->purged = array();
 			$this->trigger = null;
@@ -39,10 +39,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', rest_get_url_prefix(), '%', '=', '@', '&', ':', ';' );
 		}
 
-		function hooks() {
 		/**
 		 * Setup all WordPress actions and filters.
 		 */
+		public function hooks() {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
@@ -79,12 +79,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 		}
 
-		function admin_toolbar( $wp_admin_bar ) {
 		/**
 		 * Customize the WP Admin Bar.
 		 *
 		 * @param \WP_Admin_Bar $wp_admin_bar Instance of the admin bar.
 		 */
+		public function admin_toolbar( $wp_admin_bar ) {
 			if ( current_user_can( 'manage_options' ) && $this->is_enabled() ) {
 				$args = array(
 					'id'    => 'epc_purge_menu',
@@ -120,10 +120,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function register_cache_settings() {
 		/**
 		 * Register fields for cache settings.
 		 */
+		public function register_cache_settings() {
 			$section_name = 'epc_settings_section';
 			add_settings_section(
 				$section_name,
@@ -142,12 +142,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			register_setting( 'general', 'endurance_cache_level' );
 		}
 
-		function output_cache_settings( $args ) {
 		/**
 		 * Output the cache options.
 		 *
 		 * @param array $args Settings
 		 */
+		public function output_cache_settings( $args ) {
 			$cache_level = get_option( $args['field'], 2 );
 			echo "<select name='" . $args['field'] . "'>";
 			$cache_levels = array(
@@ -170,7 +170,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			echo '</select>';
 		}
 
-		function option_handler( $option, $old_value, $new_value ) {
 		/**
 		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
 		 * be purged.
@@ -181,6 +180,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return bool
 		 */
+		public function option_handler( $option, $old_value, $new_value ) {
 			// No need to process if nothing was updated
 			if ( $old_value === $new_value ) {
 				return false;
@@ -276,12 +276,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return true;
 		}
 
-		function comment( $comment_id, $comment_approved = null ) {
 		/**
 		 * Purge single post when a comment is updated.
 		 *
 		 * @param int $comment_id ID of the comment.
 		 */
+		public function comment( $comment_id ) {
 			$comment = get_comment( $comment_id );
 			if ( property_exists( $comment, 'comment_post_ID' ) ) {
 				$post_url = get_permalink( $comment->comment_post_ID );
@@ -289,12 +289,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function save_post( $post_id ) {
 		/**
 		 * Purge appropriate caches when post when post is updated.
 		 *
 		 * @param int $post_id Post ID
 		 */
+		public function save_post( $post_id ) {
 			$url = get_permalink( $post_id );
 			$this->purge_single( $url );
 
@@ -319,20 +319,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function edit_terms( $term_id, $taxonomy ) {
 		/**
 		 * Purge taxonomy term URL when a term is updated.
 		 *
 		 * @param int    $term_id Term ID
 		 * @param string $taxonomy Taxonomy name
 		 */
+		public function edit_terms( $term_id, $taxonomy ) {
 			$url = get_term_link( $term_id );
 			if ( ! is_wp_error( $url ) ) {
 				$this->purge_single( $url );
 			}
 		}
 
-		function write( $page ) {
 			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 		/**
 		 * Write page content to cache.
@@ -341,6 +340,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return string
 		 */
+		public function write( $page ) {
 
 			if ( false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
 				$this->path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
@@ -367,10 +367,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $page;
 		}
 
-		function purge_cdn() {
 		/**
 		 * Make a request to purge the entire CDN
 		 */
+		public function purge_cdn() {
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$endpoint = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
 				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
@@ -401,7 +401,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function purge_throttle( $value ) {
 		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
@@ -409,6 +408,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return bool
 		 */
+		public function purge_throttle( $value ) {
 			$purged = get_transient( 'epc_purged_' . md5( $value ) );
 			if ( ( true == $purged || in_array( md5( $value ), $this->purged ) ) && false == $this->force_purge ) {
 				return true;
@@ -418,12 +418,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return false;
 		}
 
-		function purge_request( $uri ) {
 		/**
 		 * Send a cache purge request.
 		 *
 		 * @param string $uri URI to be purged.
 		 */
+		public function purge_request( $uri ) {
 			global $wp_version;
 			if ( true === $this->purge_throttle( $uri ) ) {
 				return;
@@ -453,13 +453,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function purge_all( $dir = null, $purge_request = true ) {
 		/**
 		 * Purge everything in a specific directory and optionally make a purge request.
 		 *
 		 * @param string|null $dir Directory to be purged
 		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
+		public function purge_all( $dir = null, $purge_request = true ) {
 
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -489,12 +489,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function purge_single( $uri ) {
 		/**
 		 * Purge a single URI.
 		 *
 		 * @param string $uri URI to be purged.
 		 */
+		public function purge_single( $uri ) {
 			$this->purge_request( $uri );
 			$this->purge_request( get_option( 'siteurl' ) );
 			$cache_file = $this->uri_to_cache( $uri );
@@ -506,7 +506,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function uri_to_cache( $uri ) {
 		/**
 		 * Get the URI to cache.
 		 *
@@ -514,16 +513,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return string
 		 */
+		public function uri_to_cache( $uri ) {
 			$path = str_replace( get_site_url(), '', $uri );
 			return $this->cache_dir . $path . '_index.html';
 		}
 
-		function is_cachable() {
 		/**
 		 * Check if current request is cachable.
 		 *
 		 * @return bool
 		 */
+		public function is_cachable() {
 
 			$return = true;
 
@@ -561,10 +561,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return apply_filters( 'epc_is_cachable', $return );
 		}
 
-		function start() {
 		/**
 		 * Start output buffering for cachable requests.
 		 */
+		public function start() {
 			if ( $this->is_cachable() ) {
 				ob_start( array( $this, 'write' ) );
 			} else {
@@ -572,10 +572,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function finish() {
 		/**
 		 * End output buffering for cachable requests.
 		 */
+		public function finish() {
 			if ( $this->is_cachable() ) {
 				if ( ob_get_contents() ) {
 					ob_end_clean();
@@ -583,7 +583,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function htaccess_contents_rewrites( $rules ) {
 		/**
 		 * Modify the .htaccess file with custom rewrite rules based on caching level.
 		 *
@@ -591,6 +590,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return string
 		 */
+		public function htaccess_contents_rewrites( $rules ) {
 			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
 				$this->cache_level = 2;
 			}
@@ -615,7 +615,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $additions . $rules;
 		}
 
-		function htaccess_contents_expirations( $rules ) {
 		/**
 		 * Modify the .htaccess file with custom expiration rules based on caching level.
 		 *
@@ -623,6 +622,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return string
 		 */
+		public function htaccess_contents_expirations( $rules ) {
 			$default_files = array(
 				'image/jpg'       => '1 year',
 				'image/jpeg'      => '1 year',
@@ -653,7 +653,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $additions . $rules;
 		}
 
-		function is_enabled( $type = 'page' ) {
 		/**
 		 * Check if a specific caching type is enabled.
 		 *
@@ -661,6 +660,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return bool
 		 */
+		public function is_enabled( $type = 'page' ) {
 
 			$plugins = get_option( 'active_plugins', array() );
 			if ( ! empty( $plugins ) ) {
@@ -719,7 +719,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function status_link( $links ) {
 		/**
 		 * Add plugin action links.
 		 *
@@ -727,6 +726,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return array
 		 */
+		public function status_link( $links ) {
 			if ( $this->is_enabled() ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
 			} else {
@@ -736,11 +736,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $links;
 		}
 
-		function do_purge() {
 			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 		/**
 		 * Listens for purge actions and handles based on type.
 		 */
+		public function do_purge() {
 				$this->force_purge = true;
 				if ( isset( $_GET['epc_purge_all'] ) ) {
 					$this->purge_trigger = 'toolbar_manual_all';
@@ -753,7 +753,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function cache_type_change( $new_cache_settings, $old_cache_settings ) {
 		/**
 		 * Update the appropriate option when cache settings are changed.
 		 *
@@ -762,6 +761,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return array
 		 */
+		public function cache_type_change( $new_cache_settings, $old_cache_settings ) {
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
 			}
@@ -775,7 +775,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $new_cache_settings;
 		}
 
-		function cache_level_change( $new_cache_level, $old_cache_level ) {
 		/**
 		 * Handle cache level change.
 		 *
@@ -784,6 +783,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return int
 		 */
+		public function cache_level_change( $new_cache_level, $old_cache_level ) {
 			$cache_settings = get_option( 'mm_cache_settings' );
 			if ( 0 == $new_cache_level ) {
 				$cache_settings['page'] = 'disabled';
@@ -801,13 +801,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $new_cache_level;
 		}
 
-		function update_level_expirations( $level ) {
 			$level = (int) $level;
 		/**
 		 * Update cache expirations rules in .htaccess based on cache level.
 		 *
 		 * @param int $level Cache level
 		 */
+		public function update_level_expirations( $level ) {
 			$original_expirations = get_option( 'ebc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 4:
@@ -884,14 +884,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			save_mod_rewrite_rules();
 		}
 
-		function config_nginx() {
 		/**
 		 * Configure caching in nginx.
 		 */
+		public function config_nginx() {
 			$this->toggle_nginx( $this->cache_level );
 		}
 
-		function toggle_nginx( $new_value = 0 ) {
 			if ( false !== strpos( __DIR__, 'public_html' ) ) {
 				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 		/**
@@ -899,6 +898,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @param int $new_value Cache level
 		 */
+		public function toggle_nginx( $new_value = 0 ) {
 				$domain = str_replace( 'www.', '', $domain );
 				$path = explode( 'public_html', __DIR__ );
 				if ( 2 !== count( $path ) ) {
@@ -914,7 +914,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function update( $checked_data ) {
 		/**
 		 * Handle checking for plugin updates.
 		 *
@@ -922,6 +921,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return \stdClass
 		 */
+		public function update( $checked_data ) {
 
 			$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 
