@@ -1,13 +1,15 @@
 <?php
-/*
-Plugin Name: Endurance Page Cache
-Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
-Version: 1.3
-Author: Mike Hansen
-Author URI: https://www.mikehansen.me/
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
-*/
+/**
+ * Plugin Name: Endurance Page Cache
+ * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
+ * Version: 1.3
+ * Author: Mike Hansen
+ * Author URI: https://www.mikehansen.me/
+ * License: GPLv2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * @package EndurancePageCache
+ */
 
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) { die; }
