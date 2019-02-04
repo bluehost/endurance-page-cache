@@ -12,7 +12,9 @@
  */
 
 // Do not access file directly!
-if ( ! defined( 'WPINC' ) ) { die; }
+if ( ! defined( 'WPINC' ) ) {
+	die;
+}
 
 define( 'EPC_VERSION', 1.3 );
 
