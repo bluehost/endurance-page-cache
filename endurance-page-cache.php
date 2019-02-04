@@ -175,7 +175,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				4 => 'Agressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
-				if ( $i != $cache_level ) {
+				if ( $i !== $cache_level ) {
 					echo '<option value="' . absint( $i ) . '"">';
 				} else {
 					echo '<option value="' . absint( $i ) . '" selected="selected">';
@@ -428,7 +428,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function purge_throttle( $value ) {
 			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( ( true == $purged || in_array( md5( $value ), $this->purged ) ) && false == $this->force_purge ) {
+			if ( ( true === $purged || in_array( md5( $value ), $this->purged, true ) ) && false === $this->force_purge ) {
 				return true;
 			}
 			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
@@ -545,9 +545,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$return = true;
 
-			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE == true ) {
+			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 				$return = false;
-			} elseif ( 'private' == get_post_status() ) {
+			} elseif ( 'private' === get_post_status() ) {
 				$return = false;
 			} elseif ( is_404() ) {
 				$return = false;
@@ -704,32 +704,32 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( 'page' == $type ) {
 				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
+			if ( 'page' === $type ) {
 					$valid_values = array( 'enabled', 'disabled' );
-					if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
 						$cache_settings['page'] = $_GET['epc_toggle'];
+					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
 				}
-				if ( isset( $cache_settings['page'] ) && 'disabled' == $cache_settings['page'] ) {
+				if ( isset( $cache_settings['page'] ) && 'disabled' === $cache_settings['page'] ) {
 					return false;
 				} else {
 					return true;
 				}
 			}
 
-			if ( 'browser' == $type ) {
 				if ( isset( $_GET['ebc_toggle'] ) && is_admin() ) {
+			if ( 'browser' === $type ) {
 					$valid_values = array( 'enabled', 'disabled' );
-					if ( in_array( $_GET['ebc_toggle'], $valid_values ) ) {
 						$cache_settings['browser'] = $_GET['ebc_toggle'];
+					if ( in_array( $_GET['ebc_toggle'], $valid_values, true ) ) { // phpcs:ignore
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
 				}
-				if ( isset( $cache_settings['browser'] ) && 'disabled' == $cache_settings['browser'] ) {
+				if ( isset( $cache_settings['browser'] ) && 'disabled' === $cache_settings['browser'] ) {
 					return false;
 				} else {
 					return true;
@@ -781,10 +781,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function cache_type_change( $new_cache_settings, $old_cache_settings ) {
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
-				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
+				$new_page_cache_value = ( 'enabled' === $new_cache_settings['page'] ) ? 1 : 0;
 			}
 			if ( false === get_option( 'endurance_cache_level' ) ) {
-				if ( 1 == $new_page_cache_value ) {
+				if ( 1 === $new_page_cache_value ) {
 					update_option( 'endurance_cache_level', 2 );
 				} else {
 					update_option( 'endurance_cache_level', 0 );
@@ -803,8 +803,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function cache_level_change( $new_cache_level, $old_cache_level ) {
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( 0 == $new_cache_level ) {
 				$cache_settings['page'] = 'disabled';
+			if ( 0 === $new_cache_level ) {
 				$cache_settings['browser'] = 'disabled';
 			} else {
 				$cache_settings['page'] = 'enabled';
@@ -890,7 +890,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
 
-			if ( 0 == $level ) {
+			if ( 0 === $level ) {
 				delete_option( 'ebc_filetype_expirations' );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
