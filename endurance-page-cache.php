@@ -75,7 +75,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_action( 'save_post', array( $this, 'save_post' ) );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
 
-			add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
+			add_action( 'comment_post', array( $this, 'comment' ) );
 
 			add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
 
