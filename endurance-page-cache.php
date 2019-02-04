@@ -24,12 +24,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	 * Class Endurance_Page_Cache
 	 */
 	class Endurance_Page_Cache {
-			if ( defined( 'DOING_AJAX' ) ) {return;}
-			if ( isset( $_GET['doing_wp_cron'] ) ) {return;}
+
 		/**
 		 * Endurance_Page_Cache constructor.
 		 */
 		public function __construct() {
+			if ( defined( 'DOING_AJAX' ) ) {
+				return;
+			}
+			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore
+				return;
+			}
 			$this->hooks();
 			$this->purged = array();
 			$this->trigger = null;
