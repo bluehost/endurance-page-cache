@@ -312,9 +312,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param int $post_id Post ID
 		 */
 		public function save_post( $post_id ) {
+
+			// Purge post URL when post is updated.
 			$url = get_permalink( $post_id );
 			$this->purge_single( $url );
 
+			// Purge taxonomy term URLs for related terms.
 			$taxonomies = get_post_taxonomies( $post_id );
 			foreach ( $taxonomies as $taxonomy ) {
 				$terms = get_the_terms( $post_id, $taxonomy );
@@ -326,15 +329,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
+			// Purge post type archive URL when post is updated.
 			$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
 			if ( $post_type_archive ) {
 				$this->purge_single( $post_type_archive );
 			}
 
+			// Purge date archive URL when post is updated.
 			$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
 			if ( ! empty( $post_date ) ) {
 				$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
 			}
+
 		}
 
 		/**
