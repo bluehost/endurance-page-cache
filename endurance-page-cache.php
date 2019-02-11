@@ -97,7 +97,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'save_post', array( $this, 'save_post' ) );
-			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
+			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
 
 			add_action( 'comment_post', array( $this, 'comment' ) );
 
@@ -370,10 +370,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Purge taxonomy term URL when a term is updated.
 		 *
-		 * @param int    $term_id Term ID
-		 * @param string $taxonomy Taxonomy name
+		 * @param int $term_id Term ID
 		 */
-		public function edit_terms( $term_id, $taxonomy ) {
+		public function edit_terms( $term_id ) {
 			$url = get_term_link( $term_id );
 			if ( ! is_wp_error( $url ) ) {
 				$this->purge_single( $url );
