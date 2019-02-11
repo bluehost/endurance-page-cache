@@ -556,6 +556,23 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Extract image URLs from post content.
+		 *
+		 * @param string $content The post content
+		 *
+		 * @return array
+		 */
+		public function extract_image_urls( $content ) {
+			$urls = array();
+			preg_match_all( '#<img src="(.*?)"#', $content, $matches );
+			if ( isset( $matches, $matches[1] ) ) {
+				$urls = $matches[1];
+			}
+
+			return $urls;
+		}
+
+		/**
 		 * Get the URI to cache.
 		 *
 		 * @param string $uri URI
