@@ -26,33 +26,58 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 	class Endurance_Page_Cache {
 
 		/**
+		 * The directory where cached files are stored.
+		 *
+		 * @var string
+		 */
+		public $cache_dir;
+
+		/**
+		 * A collection of tokens which, if contained in a URI, will prevent caching.
+		 *
+		 * @var array
+		 */
+		public $cache_exempt = array( '@', '%', '&', '=', ':', ';', '.', 'checkout', 'cart', 'wp-admin' );
+
+		/**
+		 * Cache level.
+		 *
+		 * @var int
+		 */
+		public $cache_level = 2;
+
+		/**
+		 * Whether or not to force a purge.
+		 *
+		 * @var bool
+		 */
+		public $force_purge = false;
+
+		/**
+		 * A collection of hashes representing purged items.
+		 *
+		 * @var array
+		 */
+		public $purged = array();
+
+		/**
 		 * Endurance_Page_Cache constructor.
 		 */
 		public function __construct() {
+
 			if ( defined( 'DOING_AJAX' ) ) {
 				return;
 			}
 			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				return;
 			}
+
+			$this->cache_level = get_option( 'endurance_cache_level', 2 );
+			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
+
+			array_push( $this->cache_exempt, rest_get_url_prefix() );
+
 			$this->hooks();
-			$this->purged       = array();
-			$this->force_purge  = false;
-			$this->cache_level  = get_option( 'endurance_cache_level', 2 );
-			$this->cache_dir    = WP_CONTENT_DIR . '/endurance-page-cache';
-			$this->cache_exempt = array(
-				'wp-admin',
-				'.',
-				'checkout',
-				'cart',
-				rest_get_url_prefix(),
-				'%',
-				'=',
-				'@',
-				'&',
-				':',
-				';',
-			);
 		}
 
 		/**
