@@ -817,6 +817,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return array
 		 */
 		public function cache_type_change( $new_cache_settings, $old_cache_settings ) {
+			$new_page_cache_value = 0;
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
 				$new_page_cache_value = ( 'enabled' === $new_cache_settings['page'] ) ? 1 : 0;
 			}
