@@ -802,10 +802,22 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$this->purge_all();
 				} else {
 					$this->purge_trigger = 'toolbar_manual_single';
-					$this->purge_single( get_option( 'siteurl' ) . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
+					$this->purge_single( $this->get_current_single_purge_url() );
 				}
 				header( 'Location: ' . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
 			}
+		}
+
+		/**
+		 * Get the current URI for a single purge request.
+		 *
+		 * @return string
+		 */
+		public function get_current_single_purge_url() {
+			$host = str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() );
+			$path = remove_query_arg( [ 'epc_purge_single', 'epc_purge_all' ] );
+
+			return $host . $path;
 		}
 
 		/**
