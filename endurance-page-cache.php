@@ -32,7 +32,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'DOING_AJAX' ) ) {
 				return;
 			}
-			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:disable WordPress.Security.NonceVerification
+			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				return;
 			}
 			$this->hooks();
