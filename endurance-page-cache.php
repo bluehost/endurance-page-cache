@@ -754,11 +754,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-				if ( isset( $_GET['ebc_toggle'] ) && is_admin() ) {
 			if ( 'browser' === $type ) {
+				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
-						$cache_settings['browser'] = $_GET['ebc_toggle'];
-					if ( in_array( $_GET['ebc_toggle'], $valid_values, true ) ) { // phpcs:ignore
+					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+						$cache_settings['browser'] = $_GET['epc_toggle']; // phpcs:ignore WordPress.Security.NonceVerification
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
