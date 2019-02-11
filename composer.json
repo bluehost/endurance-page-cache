@@ -27,11 +27,12 @@
       "url": "https://satis.wpteamhub.com"
     }
   ],
-  "require": {
-  },
+  "require": {},
   "require-dev": {
+    "johnpbloch/wordpress": "^5.0",
     "bluehost/wp-php-standards": "^1.0",
-    "phpunit/phpunit": "^7.4"
+    "phpunit/phpunit": "^6.5.14",
+    "wp-phpunit/wp-phpunit": "^5.0"
   },
   "scripts": {
     "lint": [
