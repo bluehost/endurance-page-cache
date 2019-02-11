@@ -32,7 +32,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'DOING_AJAX' ) ) {
 				return;
 			}
-			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore
+			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:disable WordPress.Security.NonceVerification
 				return;
 			}
 			$this->hooks();
@@ -383,7 +383,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					if ( ! is_dir( $path ) ) {
 						mkdir( $path, 0755, true );
 					}
-					file_put_contents( $path . '_index.html', $page, LOCK_EX ); // phpcs:ignore
+					file_put_contents( $path . '_index.html', $page, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 				}
 			} else {
 				nocache_headers();
@@ -943,8 +943,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value );
-				@touch( '/etc/proxy_notify/' . $user );
+				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
+				@touch( '/etc/proxy_notify/' . $user ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
 			}
 		}
 
@@ -971,7 +971,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						if ( (float) $info['version'] > (float) constant( $info['constant'] ) ) {
 							$file = wp_remote_get( $info['source'] );
 							if ( ! is_wp_error( $file ) && isset( $file['body'] ) && strpos( $file['body'], $info['constant'] ) ) {
-								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] );
+								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 							}
 						}
 					}
