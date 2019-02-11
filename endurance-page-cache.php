@@ -685,7 +685,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'text/html'       => '5 minutes',
 			);
 
-			$file_types = wp_parse_args( get_option( 'ebc_filetype_expirations', array() ), $default_files );
+			$file_types = wp_parse_args( get_option( 'epc_filetype_expirations', array() ), $default_files );
 
 			$additions = "<IfModule mod_expires.c>\n\tExpiresActive On\n\t";
 			foreach ( $file_types as $file_type => $expires ) {
@@ -865,7 +865,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function update_level_expirations( $level ) {
 			$level                = (int) $level;
-			$original_expirations = get_option( 'ebc_filetype_expirations', array() );
+			$original_expirations = get_option( 'epc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 4:
 					$new_expirations = array(
@@ -930,11 +930,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
 
 			if ( 0 === $level ) {
-				delete_option( 'ebc_filetype_expirations' );
+				delete_option( 'epc_filetype_expirations' );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			} else {
-				update_option( 'ebc_filetype_expirations', $expirations );
+				update_option( 'epc_filetype_expirations', $expirations );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
