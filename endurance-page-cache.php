@@ -450,6 +450,32 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Purge CDN based on pattern.
+		 *
+		 * A purge pattern is any string of literal characters, and will be searched for within filenames. For example,
+		 * a pattern of "ndex" will match "index.html" and "spandex.php". For more fine-grained control, it is possible
+		 * to specify the standard PCRE anchor characters "^" and "$" at the beginning and/or end, respectively, of a
+		 * pattern, in order to anchor to that portion of the string. For example, "html$" will match "index.html" but
+		 * not "learn_html.php".
+		 *
+		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
+		 */
+		public function purge_cdn_single( $pattern = '' ) {
+			$pattern = rawurlencode( $pattern );
+			$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
+			wp_remote_request(
+				"https://my.bluehost.com/api/domains/{$domain}/caches/sitelock/{$pattern}",
+				array(
+					'method'   => 'PUT',
+					'blocking' => false,
+					'headers'  => array(
+						'X-MOJO-TOKEN' => get_option( '_mm_refresh_token' ),
+					),
+				)
+			);
+		}
+
+		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
 		 * @param string $value URI being purged
