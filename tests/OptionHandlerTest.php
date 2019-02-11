@@ -2,9 +2,6 @@
 
 use PHPUnit\Framework\TestCase;
 
-include( dirname( __FILE__ ) . '/context.php' );
-include( dirname( __DIR__ ) . '/endurance-page-cache.php' );
-
 class OptionHandlerTest extends TestCase {
 
 	/**
@@ -45,7 +42,6 @@ class OptionHandlerTest extends TestCase {
 			[ '_transient_wc_count_comments', false ],
 			[ 'active_plugins', false ],
 			[ 'akismet_spam_count', false ],
-			[ 'bvLastRecvTime', false ],
 			[ 'bwp_minify_detector_log', false ],
 			[ 'charitable_upgrade_log', false ],
 			[ 'comet_cache_options', false ],
