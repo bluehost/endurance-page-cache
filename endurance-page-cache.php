@@ -37,7 +37,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			$this->hooks();
 			$this->purged       = array();
-			$this->trigger      = null;
 			$this->force_purge  = false;
 			$this->cache_level  = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir    = WP_CONTENT_DIR . '/endurance-page-cache';
