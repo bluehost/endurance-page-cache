@@ -579,6 +579,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
 			}
+
+			// Purge CDN
+			$path = wp_parse_url( $uri, PHP_URL_PATH );
+			$this->purge_cdn_single( $path . '$' );
+
+			// Purge Image Assets from CDN
+			$post = get_page_by_path( $path, OBJECT, get_post_types( [ 'public' => true ] ) );
+			if ( $post && property_exists( $post, 'post_content' ) ) {
+				$image_urls = $this->extract_image_urls( $post->post_content );
+				foreach ( $image_urls as $image_url ) {
+					$this->purge_cdn_single( wp_parse_url( $image_url, PHP_URL_PATH ) . '$' );
+				}
+			}
 		}
 
 		/**
