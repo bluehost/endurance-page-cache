@@ -589,9 +589,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} elseif ( is_user_logged_in() ) {
 				$return = false;
-			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) {
+			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
-			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) {
+			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
 			} elseif ( is_feed() ) {
 				$return = false;
@@ -738,11 +738,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
-				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
 			if ( 'page' === $type ) {
+				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
-						$cache_settings['page'] = $_GET['epc_toggle'];
-					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore
+					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+						$cache_settings['page'] = $_GET['epc_toggle']; // phpcs:ignore WordPress.Security.NonceVerification
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
@@ -791,13 +791,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return $links;
 		}
 
-			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 		/**
 		 * Listens for purge actions and handles based on type.
 		 */
 		public function do_purge() {
+			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$this->force_purge = true;
-				if ( isset( $_GET['epc_purge_all'] ) ) {
+				if ( isset( $_GET['epc_purge_all'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$this->purge_trigger = 'toolbar_manual_all';
 					$this->purge_all();
 				} else {
