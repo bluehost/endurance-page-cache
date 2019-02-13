@@ -623,7 +623,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			// Purge Image Assets from CDN
 			if ( file_exists( $cache_file ) ) {
-				$content = file_get_contents( $cache_file );
+				$content = file_get_contents( $cache_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 				if ( ! empty( $content ) ) {
 					$image_urls = $this->extract_image_urls( $content );
 					foreach ( $image_urls as $image_url ) {
