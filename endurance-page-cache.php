@@ -250,12 +250,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return bool
 		 */
 		public function option_handler( $option, $old_value, $new_value ) {
+
 			// No need to process if nothing was updated
 			if ( $old_value === $new_value ) {
 				return false;
 			}
-
-			$option_name = str_replace( '-', '_', strtolower( $option ) );
 
 			$exempt_if_equals = array(
 				'active_plugins'    => true,
@@ -273,10 +272,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$force_if_contains = array(
 				'html',
+				'css',
+				'style',
+				'query',
+				'queries',
 			);
 
 			$exempt_if_contains = array(
-				'_404s',
 				'_active',
 				'_activated',
 				'_activation',
@@ -284,6 +286,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_available',
 				'_blacklist',
 				'_cache_validator',
+				'_check_',
 				'_checksum',
 				'_config',
 				'_count',
@@ -291,12 +294,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_disable',
 				'_enable',
 				'_errors',
+				'_hash',
 				'_inactive',
 				'_installed',
 				'_key',
 				'_last_',
 				'_license',
-				'_log',
+				'_log_',
 				'_mode',
 				'_options',
 				'_pageviews',
@@ -305,6 +309,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_schedule',
 				'_session',
 				'_settings',
+				'_shown',
 				'_stats',
 				'_status',
 				'_statistics',
@@ -315,14 +320,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_token',
 				'_traffic',
 				'_transient',
+				'_url_',
 				'_version',
 				'_views',
+				'_visits',
 				'_whitelist',
+				'404s',
 				'cron',
+				'limit_login_',
 				'nonce',
+				'user_roles',
 			);
 
 			$force_purge = false;
+
+			if ( ctype_upper( str_replace( array( '-', '_' ), '', $option ) ) ) {
+				$option = strtolower( $option );
+			}
+			$option_name = '_' . $this->to_snake_case( $this->to_studly_case( $option ) ) . '_';
 
 			foreach ( $force_if_contains as $slug ) {
 				if ( false !== strpos( $option_name, $slug ) ) {
