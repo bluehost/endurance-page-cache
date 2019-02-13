@@ -212,6 +212,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Convert a string to studly case.
+		 *
+		 * @param string $value String to be converted.
+		 *
+		 * @return string
+		 */
+		public function to_studly_case( $value ) {
+			return str_replace( ' ', '', ucwords( str_replace( array( '-', '_' ), ' ', $value ) ) );
+		}
+
+		/**
 		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
 		 * be purged.
 		 *
