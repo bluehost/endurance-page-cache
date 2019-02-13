@@ -542,15 +542,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $uri URI to be purged.
 		 */
 		public function purge_request( $uri ) {
+
 			global $wp_version;
+
 			if ( true === $this->purge_throttle( $uri ) ) {
 				return;
 			}
-			$siteurl = get_option( 'siteurl' );
 
-			$urihttps = str_replace( $siteurl, 'https://127.0.0.1:8443', $uri );
-			$urihttp  = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
-			$domain   = wp_parse_url( $siteurl, PHP_URL_HOST );
+			$domain = wp_parse_url( home_url(), PHP_URL_HOST );
 
 			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
 
@@ -563,12 +562,36 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				),
 				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() . '; EPC/v' . EPC_VERSION . '/' . $trigger,
 			);
-			wp_remote_request( $urihttp, $args );
-			wp_remote_request( $urihttps, $args );
+			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
+			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
 
 			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
 			}
+		}
+
+		/**
+		 * Get URL to be used for purge requests.
+		 *
+		 * @param string $uri The original URI
+		 * @param string $scheme The scheme to be used
+		 *
+		 * @return string
+		 */
+		public function get_purge_request_url( $uri, $scheme = 'http' ) {
+
+			// Default scheme to http; only allow two values
+			if ( 'http' !== $scheme && 'https' !== $scheme ) {
+				$scheme = 'http';
+			}
+
+			$base = ( 'http' === $scheme ) ? 'http://127.0.0.1:8080' : 'https://127.0.0.1:8443';
+
+			if ( 0 === strpos( $uri, '/' ) ) {
+				return $base . $uri;
+			}
+
+			return str_replace( str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() ), $base, $uri );
 		}
 
 		/**
