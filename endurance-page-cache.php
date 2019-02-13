@@ -223,6 +223,23 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Convert a string to snake case.
+		 *
+		 * @param string $value String to be converted.
+		 * @param string $delimiter Delimiter (can be a dash for conversion to kebab case).
+		 *
+		 * @return string
+		 */
+		public function to_snake_case( $value, $delimiter = '_' ) {
+			if ( ! ctype_lower( $value ) ) {
+				$value = preg_replace( '/(\s+)/u', '', ucwords( $value ) );
+				$value = trim( mb_strtolower( preg_replace( '/([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)/u', '$1' . $delimiter, $value ), 'UTF-8' ), $delimiter );
+			}
+
+			return $value;
+		}
+
+		/**
 		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
 		 * be purged.
 		 *
