@@ -921,7 +921,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function get_current_single_purge_url() {
 			$host = str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() );
-			$path = remove_query_arg( [ 'epc_purge_single', 'epc_purge_all' ] );
+			$path = remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) );
 
 			return $host . $path;
 		}
