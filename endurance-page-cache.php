@@ -1,34 +1,89 @@
 <?php
-/*
-Plugin Name: Endurance Page Cache
-Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
-Version: 1.3
-Author: Mike Hansen
-Author URI: https://www.mikehansen.me/
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
-*/
+/**
+ * Plugin Name: Endurance Page Cache
+ * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
+ * Version: 1.3
+ * Author: Mike Hansen
+ * Author URI: https://www.mikehansen.me/
+ * License: GPLv2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * @package EndurancePageCache
+ */
 
 // Do not access file directly!
-if ( ! defined( 'WPINC' ) ) { die; }
+if ( ! defined( 'WPINC' ) ) {
+	die;
+}
 
 define( 'EPC_VERSION', 1.3 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
+
+	/**
+	 * Class Endurance_Page_Cache
+	 */
 	class Endurance_Page_Cache {
-		function __construct() {
-			if ( defined( 'DOING_AJAX' ) ) {return;}
-			if ( isset( $_GET['doing_wp_cron'] ) ) {return;}
-			$this->hooks();
-			$this->purged = array();
-			$this->trigger = null;
-			$this->force_purge = false;
+
+		/**
+		 * The directory where cached files are stored.
+		 *
+		 * @var string
+		 */
+		public $cache_dir;
+
+		/**
+		 * A collection of tokens which, if contained in a URI, will prevent caching.
+		 *
+		 * @var array
+		 */
+		public $cache_exempt = array( '@', '%', '&', '=', ':', ';', '.', 'checkout', 'cart', 'wp-admin' );
+
+		/**
+		 * Cache level.
+		 *
+		 * @var int
+		 */
+		public $cache_level = 2;
+
+		/**
+		 * Whether or not to force a purge.
+		 *
+		 * @var bool
+		 */
+		public $force_purge = false;
+
+		/**
+		 * A collection of hashes representing purged items.
+		 *
+		 * @var array
+		 */
+		public $purged = array();
+
+		/**
+		 * Endurance_Page_Cache constructor.
+		 */
+		public function __construct() {
+
+			if ( defined( 'DOING_AJAX' ) ) {
+				return;
+			}
+			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				return;
+			}
+
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
-			$this->cache_dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			$this->cache_exempt = array( 'wp-admin', '.', 'checkout', 'cart', rest_get_url_prefix(), '%', '=', '@', '&', ':', ';' );
+			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
+
+			array_push( $this->cache_exempt, rest_get_url_prefix() );
+
+			$this->hooks();
 		}
 
-		function hooks() {
+		/**
+		 * Setup all WordPress actions and filters.
+		 */
+		public function hooks() {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
@@ -42,9 +97,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'save_post', array( $this, 'save_post' ) );
-			add_action( 'edit_terms', array( $this, 'edit_terms' ), 10, 2 );
+			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
 
-			add_action( 'comment_post', array( $this, 'comment' ), 10, 2 );
+			add_action( 'comment_post', array( $this, 'comment' ) );
 
 			add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
 
@@ -65,7 +120,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 		}
 
-		function admin_toolbar( $wp_admin_bar ) {
+		/**
+		 * Customize the WP Admin Bar.
+		 *
+		 * @param \WP_Admin_Bar $wp_admin_bar Instance of the admin bar.
+		 */
+		public function admin_toolbar( $wp_admin_bar ) {
 			if ( current_user_can( 'manage_options' ) && $this->is_enabled() ) {
 				$args = array(
 					'id'    => 'epc_purge_menu',
@@ -101,7 +161,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function register_cache_settings() {
+		/**
+		 * Register fields for cache settings.
+		 */
+		public function register_cache_settings() {
 			$section_name = 'epc_settings_section';
 			add_settings_section(
 				$section_name,
@@ -120,9 +183,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			register_setting( 'general', 'endurance_cache_level' );
 		}
 
-		function output_cache_settings( $args ) {
+		/**
+		 * Output the cache options.
+		 *
+		 * @param array $args Settings
+		 */
+		public function output_cache_settings( $args ) {
 			$cache_level = get_option( $args['field'], 2 );
-			echo "<select name='" . $args['field'] . "'>";
+			echo '<select name="' . esc_attr( $args['field'] ) . '">';
 			$cache_levels = array(
 				0 => 'Off',
 				1 => 'Assets Only',
@@ -131,33 +199,62 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				4 => 'Agressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
-				if ( $i != $cache_level ) {
-					echo "<option value='" . $i . "'>";
+				if ( $i !== $cache_level ) {
+					echo '<option value="' . absint( $i ) . '"">';
 				} else {
-					echo "<option value='" . $i . "' selected='selected'>";
+					echo '<option value="' . absint( $i ) . '" selected="selected">';
 				}
 
-				echo $label . ' (Level ' . $i . ')';
+				echo esc_html( $label ) . ' (Level ' . absint( $i ) . ')';
 				echo '</option>';
 			}
 			echo '</select>';
 		}
 
-		function purge_cron( $schedules ) {
-			$schedules['epc_weekly'] = array(
-				'interval' => WEEK_IN_SECONDS,
-				'display'  => esc_html__( 'Weekly' ),
-			);
-			return $schedules;
+		/**
+		 * Convert a string to studly case.
+		 *
+		 * @param string $value String to be converted.
+		 *
+		 * @return string
+		 */
+		public function to_studly_case( $value ) {
+			return str_replace( ' ', '', ucwords( str_replace( array( '-', '_' ), ' ', $value ) ) );
 		}
 
-		function option_handler( $option, $old_value, $new_value ) {
+		/**
+		 * Convert a string to snake case.
+		 *
+		 * @param string $value String to be converted.
+		 * @param string $delimiter Delimiter (can be a dash for conversion to kebab case).
+		 *
+		 * @return string
+		 */
+		public function to_snake_case( $value, $delimiter = '_' ) {
+			if ( ! ctype_lower( $value ) ) {
+				$value = preg_replace( '/(\s+)/u', '', ucwords( $value ) );
+				$value = trim( mb_strtolower( preg_replace( '/([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)/u', '$1' . $delimiter, $value ), 'UTF-8' ), $delimiter );
+			}
+
+			return $value;
+		}
+
+		/**
+		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
+		 * be purged.
+		 *
+		 * @param string $option Option name
+		 * @param mixed  $old_value Old option value
+		 * @param mixed  $new_value New option value
+		 *
+		 * @return bool
+		 */
+		public function option_handler( $option, $old_value, $new_value ) {
+
 			// No need to process if nothing was updated
 			if ( $old_value === $new_value ) {
 				return false;
 			}
-
-			$option_name = str_replace( '-', '_', strtolower( $option ) );
 
 			$exempt_if_equals = array(
 				'active_plugins'    => true,
@@ -175,10 +272,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$force_if_contains = array(
 				'html',
+				'css',
+				'style',
+				'query',
+				'queries',
 			);
 
 			$exempt_if_contains = array(
-				'_404s',
 				'_active',
 				'_activated',
 				'_activation',
@@ -186,6 +286,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_available',
 				'_blacklist',
 				'_cache_validator',
+				'_check_',
 				'_checksum',
 				'_config',
 				'_count',
@@ -193,12 +294,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_disable',
 				'_enable',
 				'_errors',
+				'_hash',
 				'_inactive',
 				'_installed',
 				'_key',
 				'_last_',
 				'_license',
-				'_log',
+				'_log_',
 				'_mode',
 				'_options',
 				'_pageviews',
@@ -207,6 +309,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_schedule',
 				'_session',
 				'_settings',
+				'_shown',
 				'_stats',
 				'_status',
 				'_statistics',
@@ -217,14 +320,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'_token',
 				'_traffic',
 				'_transient',
+				'_url_',
 				'_version',
 				'_views',
+				'_visits',
 				'_whitelist',
+				'404s',
 				'cron',
+				'limit_login_',
 				'nonce',
+				'user_roles',
 			);
 
 			$force_purge = false;
+
+			if ( ctype_upper( str_replace( array( '-', '_' ), '', $option ) ) ) {
+				$option = strtolower( $option );
+			}
+			$option_name = '_' . $this->to_snake_case( $this->to_studly_case( $option ) ) . '_';
 
 			foreach ( $force_if_contains as $slug ) {
 				if ( false !== strpos( $option_name, $slug ) ) {
@@ -247,18 +360,31 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			return true;
 		}
 
-		function comment( $comment_id, $comment_approved = null ) {
+		/**
+		 * Purge single post when a comment is updated.
+		 *
+		 * @param int $comment_id ID of the comment.
+		 */
+		public function comment( $comment_id ) {
 			$comment = get_comment( $comment_id );
-			if ( property_exists( $comment, 'comment_post_ID' ) ) {
+			if ( $comment && property_exists( $comment, 'comment_post_ID' ) ) {
 				$post_url = get_permalink( $comment->comment_post_ID );
 				$this->purge_single( $post_url );
 			}
 		}
 
-		function save_post( $post_id ) {
+		/**
+		 * Purge appropriate caches when post when post is updated.
+		 *
+		 * @param int $post_id Post ID
+		 */
+		public function save_post( $post_id ) {
+
+			// Purge post URL when post is updated.
 			$url = get_permalink( $post_id );
 			$this->purge_single( $url );
 
+			// Purge taxonomy term URLs for related terms.
 			$taxonomies = get_post_taxonomies( $post_id );
 			foreach ( $taxonomies as $taxonomy ) {
 				$terms = get_the_terms( $post_id, $taxonomy );
@@ -270,32 +396,48 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			if ( $post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) ) ) {
+			// Purge post type archive URL when post is updated.
+			$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
+			if ( $post_type_archive ) {
 				$this->purge_single( $post_type_archive );
 			}
 
+			// Purge date archive URL when post is updated.
 			$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
 			if ( ! empty( $post_date ) ) {
 				$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
 			}
+
 		}
 
-		function edit_terms( $term_id, $taxonomy ) {
+		/**
+		 * Purge taxonomy term URL when a term is updated.
+		 *
+		 * @param int $term_id Term ID
+		 */
+		public function edit_terms( $term_id ) {
 			$url = get_term_link( $term_id );
 			if ( ! is_wp_error( $url ) ) {
 				$this->purge_single( $url );
 			}
 		}
 
-		function write( $page ) {
-			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
+		/**
+		 * Write page content to cache.
+		 *
+		 * @param string $page Page content to be cached.
+		 *
+		 * @return string
+		 */
+		public function write( $page ) {
+			$base = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 
 			if ( false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
-				$this->path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
-				$this->path = str_replace( '/endurance-page-cache' . $base, '/endurance-page-cache/', $this->path );
-				$this->path = str_replace( '//', '/', $this->path );
+				$path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
+				$path = str_replace( '/endurance-page-cache' . $base, '/endurance-page-cache/', $path );
+				$path = str_replace( '//', '/', $path );
 
-				if ( file_exists( $this->path . '_index.html' ) && filemtime( $this->path . '_index.html' ) > time() - HOUR_IN_SECONDS ) {
+				if ( file_exists( $path . '_index.html' ) && filemtime( $path . '_index.html' ) > time() - HOUR_IN_SECONDS ) {
 					return $page;
 				}
 
@@ -303,23 +445,27 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$page .= "\n<!--Generated by Endurance Page Cache-->";
 				}
 
-				if ( false === strpos( __DIR__, 'public_html' ) ) {
-					if ( ! is_dir( $this->path ) ) {
-						mkdir( $this->path, 0755, true );
+				if ( false === strpos( dirname( __FILE__ ), 'public_html' ) ) {
+					if ( ! is_dir( $path ) ) {
+						mkdir( $path, 0755, true );
 					}
-					file_put_contents( $this->path . '_index.html', $page, LOCK_EX );
+					file_put_contents( $path . '_index.html', $page, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 				}
 			} else {
 				nocache_headers();
 			}
+
 			return $page;
 		}
 
-		function purge_cdn() {
+		/**
+		 * Make a request to purge the entire CDN
+		 */
+		public function purge_cdn() {
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
-				$endpoint = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
-				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
-				$query = add_query_arg( array( 'domain' => $domain ), $endpoint );
+				$endpoint      = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
+				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+				$query         = add_query_arg( array( 'domain' => $domain ), $endpoint );
 				$refresh_token = get_option( '_mm_refresh_token' );
 				if ( false === $refresh_token ) {
 					return;
@@ -333,60 +479,128 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 
 				$path_hash = bin2hex( $path );
-				$headers = array(
+				$headers   = array(
 					'x-api-refresh-token' => $refresh_token,
-					'x-api-path' => $path_hash,
+					'x-api-path'          => $path_hash,
 				);
-				$args = array(
-					'timeout'     => 1,
-					'blocking'    => false,
-					'headers'     => $headers,
+				$args      = array(
+					'timeout'  => 1,
+					'blocking' => false,
+					'headers'  => $headers,
 				);
-				$response = wp_remote_get( $query, $args );
+				wp_remote_get( $query, $args );
 			}
 		}
 
-		function purge_throttle( $value ) {
+		/**
+		 * Purge CDN based on pattern.
+		 *
+		 * A purge pattern is any string of literal characters, and will be searched for within filenames. For example,
+		 * a pattern of "ndex" will match "index.html" and "spandex.php". For more fine-grained control, it is possible
+		 * to specify the standard PCRE anchor characters "^" and "$" at the beginning and/or end, respectively, of a
+		 * pattern, in order to anchor to that portion of the string. For example, "html$" will match "index.html" but
+		 * not "learn_html.php".
+		 *
+		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
+		 */
+		public function purge_cdn_single( $pattern = '' ) {
+			$pattern = rawurlencode( $pattern );
+			$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
+			wp_remote_request(
+				"https://my.bluehost.com/api/domains/{$domain}/caches/sitelock/{$pattern}",
+				array(
+					'method'   => 'PUT',
+					'blocking' => false,
+					'headers'  => array(
+						'X-MOJO-TOKEN' => get_option( '_mm_refresh_token' ),
+					),
+				)
+			);
+		}
+
+		/**
+		 * Ensure that a URI isn't purged more than once per minute.
+		 *
+		 * @param string $value URI being purged
+		 *
+		 * @return bool
+		 */
+		public function purge_throttle( $value ) {
 			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( ( true == $purged || in_array( md5( $value ), $this->purged ) ) && false == $this->force_purge ) {
+			if ( ( true === $purged || in_array( md5( $value ), $this->purged, true ) ) && false === $this->force_purge ) {
 				return true;
 			}
 			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
 			$this->purged[] = md5( $value );
+
 			return false;
 		}
 
-		function purge_request( $uri ) {
+		/**
+		 * Send a cache purge request.
+		 *
+		 * @param string $uri URI to be purged.
+		 */
+		public function purge_request( $uri ) {
+
 			global $wp_version;
+
 			if ( true === $this->purge_throttle( $uri ) ) {
 				return;
 			}
-			$siteurl = get_option( 'siteurl' );
 
-			$urihttps = str_replace( $siteurl, 'https://127.0.0.1:8443', $uri );
-			$urihttp = str_replace( $siteurl, 'http://127.0.0.1:8080', $uri );
-			$domain = parse_url( $siteurl, PHP_URL_HOST );
+			$domain = wp_parse_url( home_url(), PHP_URL_HOST );
 
 			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
 
 			$args = array(
-				'method' => 'PURGE',
-				'timeout' => '5',
-				'sslverify' => false,
-				'headers' => array(
-					'host'   => $domain,
+				'method'     => 'PURGE',
+				'timeout'    => '5',
+				'sslverify'  => false,
+				'headers'    => array(
+					'host' => $domain,
 				),
-				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() .'; EPC/v' . EPC_VERSION . '/' . $trigger,
+				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() . '; EPC/v' . EPC_VERSION . '/' . $trigger,
 			);
-			wp_remote_request( $urihttp, $args );
-			wp_remote_request( $urihttps, $args );
+			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
+			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
 
-			if ( preg_match('/\.\*$/',$uri) ) {
+			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
 			}
 		}
 
-		function purge_all( $dir = null, $purge_request = true ) {
+		/**
+		 * Get URL to be used for purge requests.
+		 *
+		 * @param string $uri The original URI
+		 * @param string $scheme The scheme to be used
+		 *
+		 * @return string
+		 */
+		public function get_purge_request_url( $uri, $scheme = 'http' ) {
+
+			// Default scheme to http; only allow two values
+			if ( 'http' !== $scheme && 'https' !== $scheme ) {
+				$scheme = 'http';
+			}
+
+			$base = ( 'http' === $scheme ) ? 'http://127.0.0.1:8080' : 'https://127.0.0.1:8443';
+
+			if ( 0 === strpos( $uri, '/' ) ) {
+				return $base . $uri;
+			}
+
+			return str_replace( str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() ), $base, $uri );
+		}
+
+		/**
+		 * Purge everything in a specific directory and optionally make a purge request.
+		 *
+		 * @param string|null $dir Directory to be purged
+		 * @param bool        $purge_request Whether or not to make a purge request.
+		 */
+		public function purge_all( $dir = null, $purge_request = true ) {
 
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -416,39 +630,85 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function purge_single( $uri ) {
+		/**
+		 * Purge a single URI.
+		 *
+		 * @param string $uri URI to be purged.
+		 */
+		public function purge_single( $uri ) {
 			$this->purge_request( $uri );
-			$this->purge_request( get_option( 'siteurl' ) );
+			$this->purge_request( home_url() );
 			$cache_file = $this->uri_to_cache( $uri );
+
+			// Purge CDN
+			$path = wp_parse_url( $uri, PHP_URL_PATH );
+			$this->purge_cdn_single( $path . '$' );
+
+			// Purge Image Assets from CDN
+			if ( file_exists( $cache_file ) ) {
+				$content = file_get_contents( $cache_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+				if ( ! empty( $content ) ) {
+					$image_urls = $this->extract_image_urls( $content );
+					foreach ( $image_urls as $image_url ) {
+						$this->purge_cdn_single( wp_parse_url( $image_url, PHP_URL_PATH ) . '$' );
+					}
+				}
+			}
+
+			// Purge requested file
 			if ( file_exists( $cache_file ) ) {
 				unlink( $cache_file );
 			}
+
+			// Purge front page file
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
 			}
+
 		}
 
-		function minify( $content ) {
-			$content = str_replace( "\r", '', $content );
-			$content = str_replace( "\n", '', $content );
-			$content = str_replace( "\t", '', $content );
-			$content = str_replace( '  ', ' ', $content );
-			$content = trim( $content );
-			return $content;
+		/**
+		 * Extract image URLs from post content.
+		 *
+		 * @param string $content The post content
+		 *
+		 * @return array
+		 */
+		public function extract_image_urls( $content ) {
+			$urls = array();
+			preg_match_all( '#<img src="(.*?)"#', $content, $matches );
+			if ( isset( $matches, $matches[1] ) ) {
+				$urls = $matches[1];
+			}
+
+			return $urls;
 		}
 
-		function uri_to_cache( $uri ) {
+		/**
+		 * Get the URI to cache.
+		 *
+		 * @param string $uri URI
+		 *
+		 * @return string
+		 */
+		public function uri_to_cache( $uri ) {
 			$path = str_replace( get_site_url(), '', $uri );
+
 			return $this->cache_dir . $path . '_index.html';
 		}
 
-		function is_cachable() {
+		/**
+		 * Check if current request is cachable.
+		 *
+		 * @return bool
+		 */
+		public function is_cachable() {
 
 			$return = true;
 
-			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE == true ) {
+			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 				$return = false;
-			} elseif ( 'private' == get_post_status() ) {
+			} elseif ( 'private' === get_post_status() ) {
 				$return = false;
 			} elseif ( is_404() ) {
 				$return = false;
@@ -458,9 +718,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} elseif ( is_user_logged_in() ) {
 				$return = false;
-			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) {
+			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
-			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) {
+			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
 			} elseif ( is_feed() ) {
 				$return = false;
@@ -477,10 +737,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			return apply_filters( 'epc_is_cachable', $return );
+			return (bool) apply_filters( 'epc_is_cachable', $return );
 		}
 
-		function start() {
+		/**
+		 * Start output buffering for cachable requests.
+		 */
+		public function start() {
 			if ( $this->is_cachable() ) {
 				ob_start( array( $this, 'write' ) );
 			} else {
@@ -488,7 +751,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function finish() {
+		/**
+		 * End output buffering for cachable requests.
+		 */
+		public function finish() {
 			if ( $this->is_cachable() ) {
 				if ( ob_get_contents() ) {
 					ob_end_clean();
@@ -496,16 +762,23 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 		}
 
-		function htaccess_contents_rewrites( $rules ) {
+		/**
+		 * Modify the .htaccess file with custom rewrite rules based on caching level.
+		 *
+		 * @param string $rules .htaccess content
+		 *
+		 * @return string
+		 */
+		public function htaccess_contents_rewrites( $rules ) {
 			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
 				$this->cache_level = 2;
 			}
-			$base = parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
+			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
 			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
 
-			if ( false === strpos( __DIR__, 'public_html' ) ) {
+			if ( false === strpos( dirname( __FILE__ ), 'public_html' ) ) {
 				$additions .= 'Options -Indexes ' . "\n" . '
 				<IfModule mod_rewrite.c>
 					RewriteEngine On
@@ -518,10 +791,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
 				</IfModule>' . "\n";
 			}
+
 			return $additions . $rules;
 		}
 
-		function htaccess_contents_expirations( $rules ) {
+		/**
+		 * Modify the .htaccess file with custom expiration rules based on caching level.
+		 *
+		 * @param string $rules .htaccess content
+		 *
+		 * @return string
+		 */
+		public function htaccess_contents_expirations( $rules ) {
 			$default_files = array(
 				'image/jpg'       => '1 year',
 				'image/jpeg'      => '1 year',
@@ -533,7 +814,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'text/html'       => '5 minutes',
 			);
 
-			$file_types = wp_parse_args( get_option( 'ebc_filetype_expirations', array() ), $default_files );
+			$file_types = wp_parse_args( get_option( 'epc_filetype_expirations', array() ), $default_files );
 
 			$additions = "<IfModule mod_expires.c>\n\tExpiresActive On\n\t";
 			foreach ( $file_types as $file_type => $expires ) {
@@ -549,10 +830,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$additions .= "ExpiresDefault \"access plus 6 hours\"\n";
 			}
 			$additions .= "</IfModule>\n";
+
 			return $additions . $rules;
 		}
 
-		function is_enabled( $type = 'page' ) {
+		/**
+		 * Check if a specific caching type is enabled.
+		 *
+		 * @param string $type Caching type.
+		 *
+		 * @return bool
+		 */
+		public function is_enabled( $type = 'page' ) {
 
 			$plugins = get_option( 'active_plugins', array() );
 			if ( ! empty( $plugins ) ) {
@@ -564,7 +853,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$active_theme = array(
 				'stylesheet' => get_option( 'stylesheet' ),
-				'template' => get_option( 'template' ),
+				'template'   => get_option( 'template' ),
 			);
 
 			$active_theme = implode( ' ', $active_theme );
@@ -578,98 +867,147 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( 'page' == $type ) {
-				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) {
+			if ( 'page' === $type ) {
+				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
-					if ( in_array( $_GET['epc_toggle'], $valid_values ) ) {
-						$cache_settings['page'] = $_GET['epc_toggle'];
+					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+						$cache_settings['page'] = $_GET['epc_toggle']; // phpcs:ignore WordPress.Security.NonceVerification
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
 				}
-				if ( isset( $cache_settings['page'] ) && 'disabled' == $cache_settings['page'] ) {
+				if ( isset( $cache_settings['page'] ) && 'disabled' === $cache_settings['page'] ) {
 					return false;
 				} else {
 					return true;
 				}
 			}
 
-			if ( 'browser' == $type ) {
-				if ( isset( $_GET['ebc_toggle'] ) && is_admin() ) {
+			if ( 'browser' === $type ) {
+				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
-					if ( in_array( $_GET['ebc_toggle'], $valid_values ) ) {
-						$cache_settings['browser'] = $_GET['ebc_toggle'];
+					if ( in_array( $_GET['epc_toggle'], $valid_values, true ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+						$cache_settings['browser'] = $_GET['epc_toggle']; // phpcs:ignore WordPress.Security.NonceVerification
 						update_option( 'mm_cache_settings', $cache_settings );
 						header( 'Location: ' . admin_url( 'plugins.php?plugin_status=mustuse' ) );
 					}
 				}
-				if ( isset( $cache_settings['browser'] ) && 'disabled' == $cache_settings['browser'] ) {
+				if ( isset( $cache_settings['browser'] ) && 'disabled' === $cache_settings['browser'] ) {
 					return false;
 				} else {
 					return true;
 				}
 			}
+
+			return false;
 		}
 
-		function status_link( $links ) {
+		/**
+		 * Add plugin action links.
+		 *
+		 * @param array $links Action links
+		 *
+		 * @return array
+		 */
+		public function status_link( $links ) {
 			if ( $this->is_enabled() ) {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'disabled' ) ) . '">Disable</a>';
 			} else {
 				$links[] = '<a href="' . add_query_arg( array( 'epc_toggle' => 'enabled' ) ) . '">Enable</a>';
 			}
 			$links[] = '<a href="' . add_query_arg( array( 'epc_purge_all' => 'true' ) ) . '">Purge Cache</a>';
+
 			return $links;
 		}
 
-		function do_purge() {
-			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+		/**
+		 * Listens for purge actions and handles based on type.
+		 */
+		public function do_purge() {
+			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$this->force_purge = true;
-				if ( isset( $_GET['epc_purge_all'] ) ) {
+				if ( isset( $_GET['epc_purge_all'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$this->purge_trigger = 'toolbar_manual_all';
 					$this->purge_all();
 				} else {
 					$this->purge_trigger = 'toolbar_manual_single';
-					$this->purge_single( get_option( 'siteurl' ) . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
+					$this->purge_single( $this->get_current_single_purge_url() );
 				}
 				header( 'Location: ' . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
 			}
 		}
 
-		function cache_type_change( $new_cache_settings, $old_cache_settings ) {
+		/**
+		 * Get the current URI for a single purge request.
+		 *
+		 * @return string
+		 */
+		public function get_current_single_purge_url() {
+			$host = str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() );
+			$path = remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) );
+
+			return $host . $path;
+		}
+
+		/**
+		 * Update the appropriate option when cache settings are changed.
+		 *
+		 * @param array $new_cache_settings New cache settings
+		 * @param array $old_cache_settings Old Cache settings
+		 *
+		 * @return array
+		 */
+		public function cache_type_change( $new_cache_settings, $old_cache_settings ) {
+			$new_page_cache_value = 0;
 			if ( is_array( $new_cache_settings ) && isset( $new_cache_settings['page'] ) ) {
-				$new_page_cache_value = ( 'enabled' == $new_cache_settings['page'] ) ? 1 : 0;
+				$new_page_cache_value = ( 'enabled' === $new_cache_settings['page'] ) ? 1 : 0;
 			}
 			if ( false === get_option( 'endurance_cache_level' ) ) {
-				if ( 1 == $new_page_cache_value ) {
+				if ( 1 === $new_page_cache_value ) {
 					update_option( 'endurance_cache_level', 2 );
 				} else {
 					update_option( 'endurance_cache_level', 0 );
 				}
 			}
+
 			return $new_cache_settings;
 		}
 
-		function cache_level_change( $new_cache_level, $old_cache_level ) {
+		/**
+		 * Handle cache level change.
+		 *
+		 * @param int $new_cache_level New cache level
+		 * @param int $old_cache_level Old cache level
+		 *
+		 * @return int
+		 */
+		public function cache_level_change( $new_cache_level, $old_cache_level ) {
 			$cache_settings = get_option( 'mm_cache_settings' );
-			if ( 0 == $new_cache_level ) {
-				$cache_settings['page'] = 'disabled';
+			if ( 0 === $new_cache_level ) {
+				$cache_settings['page']    = 'disabled';
 				$cache_settings['browser'] = 'disabled';
 			} else {
-				$cache_settings['page'] = 'enabled';
+				$cache_settings['page']    = 'enabled';
 				$cache_settings['browser'] = 'enabled';
 			}
-			remove_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
+			remove_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10 );
 			update_option( 'mm_cache_settings', $cache_settings );
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			$this->cache_level = $new_cache_level;
 			$this->toggle_nginx( $new_cache_level );
 			$this->update_level_expirations( $new_cache_level );
-			return $new_cache_level;
+
+			return (int) $new_cache_level;
 		}
 
-		function update_level_expirations( $level ) {
-			$level = (int) $level;
-			$original_expirations = get_option( 'ebc_filetype_expirations', array() );
+		/**
+		 * Update cache expirations rules in .htaccess based on cache level.
+		 *
+		 * @param int $level Cache level
+		 */
+		public function update_level_expirations( $level ) {
+			$level                = (int) $level;
+			$original_expirations = get_option( 'epc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 4:
 					$new_expirations = array(
@@ -733,27 +1071,35 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 			$expirations = wp_parse_args( $new_expirations, $original_expirations );
 
-			if ( 0 == $level ) {
-				delete_option( 'ebc_filetype_expirations' );
+			if ( 0 === $level ) {
+				delete_option( 'epc_filetype_expirations' );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			} else {
-				update_option( 'ebc_filetype_expirations', $expirations );
+				update_option( 'epc_filetype_expirations', $expirations );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 			save_mod_rewrite_rules();
 		}
 
-		function config_nginx() {
+		/**
+		 * Configure caching in nginx.
+		 */
+		public function config_nginx() {
 			$this->toggle_nginx( $this->cache_level );
 		}
 
-		function toggle_nginx( $new_value = 0 ) {
-			if ( false !== strpos( __DIR__, 'public_html' ) ) {
-				$domain = parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+		/**
+		 * Toggle nginx caching.
+		 *
+		 * @param int $new_value Cache level
+		 */
+		public function toggle_nginx( $new_value = 0 ) {
+			if ( false !== strpos( dirname( __FILE__ ), 'public_html' ) ) {
+				$domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$domain = str_replace( 'www.', '', $domain );
-				$path = explode( 'public_html', __DIR__ );
+				$path   = explode( 'public_html', dirname( __FILE__ ) );
 				if ( 2 !== count( $path ) ) {
 					return;
 				}
@@ -762,17 +1108,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value );
-				@touch( '/etc/proxy_notify/' . $user );
+				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
+				@touch( '/etc/proxy_notify/' . $user ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
 			}
 		}
 
-		function update( $checked_data ) {
+		/**
+		 * Handle checking for plugin updates.
+		 *
+		 * @param \stdClass $checked_data Plugin update data.
+		 *
+		 * @return \stdClass
+		 */
+		public function update( $checked_data ) {
 
 			$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 
 			if ( is_wp_error( $muplugins_details ) || ! isset( $muplugins_details['body'] ) ) {
-				return;
+				return $checked_data;
 			}
 
 			$mu_plugin = json_decode( $muplugins_details['body'], true );
@@ -783,14 +1136,16 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						if ( (float) $info['version'] > (float) constant( $info['constant'] ) ) {
 							$file = wp_remote_get( $info['source'] );
 							if ( ! is_wp_error( $file ) && isset( $file['body'] ) && strpos( $file['body'], $info['constant'] ) ) {
-								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] );
+								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 							}
 						}
 					}
 				}
 			}
+
 			return $checked_data;
 		}
 	}
-	$epc = new Endurance_Page_Cache;
+
+	$epc = new Endurance_Page_Cache();
 }
