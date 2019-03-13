@@ -504,18 +504,20 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
 		 */
 		public function purge_cdn_single( $pattern = '' ) {
-			$pattern = rawurlencode( $pattern );
-			$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
-			wp_remote_request(
-				"https://my.bluehost.com/api/domains/{$domain}/caches/sitelock/{$pattern}",
-				array(
-					'method'   => 'PUT',
-					'blocking' => false,
-					'headers'  => array(
-						'X-MOJO-TOKEN' => get_option( '_mm_refresh_token' ),
-					),
-				)
-			);
+			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
+				$pattern = rawurlencode( $pattern );
+				$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
+				wp_remote_request(
+					"https://my.bluehost.com/api/domains/{$domain}/caches/sitelock/{$pattern}",
+					array(
+						'method'   => 'PUT',
+						'blocking' => false,
+						'headers'  => array(
+							'X-MOJO-TOKEN' => get_option( '_mm_refresh_token' ),
+						),
+					)
+				);
+			}
 		}
 
 		/**
