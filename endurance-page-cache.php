@@ -712,7 +712,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} elseif ( 'private' === get_post_status() ) {
 				$return = false;
-			} elseif ( is_404() ) {
+			} elseif ( function_exists( 'is_404' ) && is_404() ) {
 				$return = false;
 			} elseif ( is_admin() ) {
 				$return = false;
@@ -724,7 +724,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
-			} elseif ( is_feed() ) {
+			} elseif ( function_exists( 'is_feed' ) && is_feed() ) {
 				$return = false;
 			}
 
