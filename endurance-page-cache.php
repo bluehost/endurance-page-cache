@@ -705,6 +705,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return bool
 		 */
 		public function is_cachable() {
+			global $wp_query;
+
+			if ( ! isset( $wp_query ) ) {
+				$wp_query = new WP_Query();
+			}
 
 			$return = true;
 
