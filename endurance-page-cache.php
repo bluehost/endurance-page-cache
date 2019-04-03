@@ -709,27 +709,23 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$return = true;
 
-			if ( isset( $wp_query ) ) {
-				if ( is_404() ) {
-					$return = false;
-				} elseif ( is_feed() ) {
-					$return = false;
-				}
-			}
-
 			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 				$return = false;
 			} elseif ( 'private' === get_post_status() ) {
+				$return = false;
+			} elseif ( isset( $wp_query ) && is_404() ) {
 				$return = false;
 			} elseif ( is_admin() ) {
 				$return = false;
 			} elseif ( false === get_option( 'permalink_structure' ) ) {
 				$return = false;
-			} elseif ( is_user_logged_in() ) {
+			} elseif ( function_exists('is_user_logged_in') && is_user_logged_in() ) {
 				$return = false;
 			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
 			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				$return = false;
+			} elseif ( isset( $wp_query ) && is_feed() ) {
 				$return = false;
 			}
 
