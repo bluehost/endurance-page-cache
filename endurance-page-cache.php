@@ -1124,7 +1124,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function update( $checked_data ) {
 
-			$muplugins_details = get_option( 'mojo_plugin_assets' );
+			$muplugins_details = get_transient( 'mojo_plugin_assets' );
 			
 			if ( ! $muplugins_details ) {
 				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
@@ -1147,7 +1147,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						}
 					}
 				}
-				update_option( 'mojo_plugin_assets', $mu_plugin, 6 * HOUR_IN_SECONDS );
+				set_transient( 'mojo_plugin_assets', $mu_plugin, 6 * HOUR_IN_SECONDS );
 			}
 
 			return $checked_data;
