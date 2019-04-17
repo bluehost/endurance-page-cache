@@ -1127,7 +1127,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$muplugins_details = get_transient( 'mojo_plugin_assets' );
 			
 			if ( ! $muplugins_details ) {
-				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+				    $muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+				    if ( ! is_wp_error( $muplugins_details )  ) {
+				        set_transient( 'mojo_plugin_assets', $muplugins_details, 6 * HOUR_IN_SECONDS );
+				    }
 			}
 
 			if ( is_wp_error( $muplugins_details ) || ! isset( $muplugins_details['body'] ) ) {
