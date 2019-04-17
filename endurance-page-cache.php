@@ -558,6 +558,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$args = array(
 				'method'     => 'PURGE',
 				'timeout'    => '5',
+				'blocking'   => false,
 				'sslverify'  => false,
 				'headers'    => array(
 					'host' => $domain,
