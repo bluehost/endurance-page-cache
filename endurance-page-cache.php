@@ -380,34 +380,81 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function save_post( $post_id ) {
 
-			// Purge post URL when post is updated.
-			$url = get_permalink( $post_id );
-			$this->purge_single( $url );
+			// Check if post is public
+			if ( $this->is_public_post( $post_id ) ) {
 
-			// Purge taxonomy term URLs for related terms.
-			$taxonomies = get_post_taxonomies( $post_id );
-			foreach ( $taxonomies as $taxonomy ) {
-				$terms = get_the_terms( $post_id, $taxonomy );
-				if ( is_array( $terms ) ) {
-					foreach ( $terms as $term ) {
-						$term_link = get_term_link( $term );
-						$this->purge_single( $term_link );
+				// Purge post URL when post is updated.
+				$permalink = get_permalink( $post_id );
+				if ( $permalink ) {
+					$this->purge_single( $post_id );
+				}
+
+				// Purge taxonomy term URLs for related terms.
+				$taxonomies = get_post_taxonomies( $post_id );
+				foreach ( $taxonomies as $taxonomy ) {
+					if ( $this->is_public_taxonomy( $taxonomy ) ) {
+						$terms = get_the_terms( $post_id, $taxonomy );
+						if ( is_array( $terms ) ) {
+							foreach ( $terms as $term ) {
+								$term_link = get_term_link( $term );
+								$this->purge_single( $term_link );
+							}
+						}
+					}
+				}
+
+				// Purge post type archive URL when post is updated.
+				$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
+				if ( $post_type_archive ) {
+					$this->purge_single( $post_type_archive );
+				}
+
+				// Purge date archive URL when post is updated.
+				$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
+				if ( ! empty( $post_date ) ) {
+					$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
+				}
+			}
+
+		}
+
+		/**
+		 * Checks if a post is public.
+		 *
+		 * @param int $post_id The post ID.
+		 *
+		 * @return boolean
+		 */
+		public function is_public_post( $post_id ) {
+			$public = false;
+			if ( false === wp_is_post_autosave( $post_id ) ) {
+				$post_type = get_post_type( $post_id );
+				if ( $post_type ) {
+					$post_type_object = get_post_type_object( $post_type );
+					if ( $post_type_object && isset( $post_type_object->public ) ) {
+						$public = $post_type_object->public;
 					}
 				}
 			}
 
-			// Purge post type archive URL when post is updated.
-			$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
-			if ( $post_type_archive ) {
-				$this->purge_single( $post_type_archive );
+			return $public;
+		}
+
+		/**
+		 * Checks if a taxonomy is public.
+		 *
+		 * @param string $taxonomy Taxonomy name.
+		 *
+		 * @return boolean
+		 */
+		public function is_public_taxonomy( $taxonomy ) {
+			$public          = false;
+			$taxonomy_object = get_taxonomy( $taxonomy );
+			if ( $taxonomy_object && isset( $taxonomy_object->public ) ) {
+				$public = $taxonomy_object->public;
 			}
 
-			// Purge date archive URL when post is updated.
-			$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
-			if ( ! empty( $post_date ) ) {
-				$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
-			}
-
+			return $public;
 		}
 
 		/**
