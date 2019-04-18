@@ -709,6 +709,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 				$return = false;
+			} elseif ( defined( 'DOING_AJAX' ) ) {
+				$return = false;
 			} elseif ( 'private' === get_post_status() ) {
 				$return = false;
 			} elseif ( isset( $wp_query ) && is_404() ) {
