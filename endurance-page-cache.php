@@ -118,6 +118,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
+
+			add_filter( 'got_rewrite', array( $this, 'force_rewrite' ) );
 		}
 
 		/**
@@ -1202,6 +1204,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			return $checked_data;
+		}
+
+		/**
+		 * Filter to force got_mod_rewrite() to true
+		 *
+		 * On CLI requests, mod_rewrite is unavailable, so it fails to update
+		 * the .htaccess file when save_mod_rewrite_rules() is called. This
+		 * forces that to be true so updates from WP CLI work.
+		 *
+		 * @param bool $got_rewrite Value of apache_mod_loaded('mod_rewrite')
+		 *
+		 * @return bool true for WP CLI requests
+		 */
+		public function force_rewrite( $got_rewrite ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return true;
+			}
+			return $got_rewrite;
 		}
 	}
 
