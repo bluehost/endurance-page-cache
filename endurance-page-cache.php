@@ -93,7 +93,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
-			add_action( 'save_post', array( $this, 'save_post' ) );
+			add_action( 'save_post', array( $this, 'save_post' ), 10, 2 );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
 
 			add_action( 'comment_post', array( $this, 'comment' ) );
@@ -377,10 +377,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @param int $post_id Post ID
 		 */
-		public function save_post( $post_id ) {
+		public function save_post( $post_id, $post ) {
+
+			// List of statuses that aren't public for non-authenticated users,
+			// and so shouldn't be cached or purged.
+			$exempt_statuses = array( 'draft', 'private', 'auto-draft', 'scheduled', 'trash' );
 
 			// Check if post is public
-			if ( $this->is_public_post( $post_id ) ) {
+			if ( $this->is_public_post( $post_id ) && ! in_array( $post->post_status, $exempt_statuses ) ) {
 
 				// Purge post URL when post is updated.
 				$permalink = get_permalink( $post_id );
@@ -1175,7 +1179,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function update( $checked_data ) {
 
 			$muplugins_details = get_transient( 'mojo_plugin_assets' );
-			
+
 			if ( ! $muplugins_details ) {
 				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 				if ( ! is_wp_error( $muplugins_details )  ) {
