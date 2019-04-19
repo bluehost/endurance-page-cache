@@ -385,7 +385,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				// Purge post URL when post is updated.
 				$permalink = get_permalink( $post_id );
 				if ( $permalink ) {
-					$this->purge_single( $post_id );
+					$this->purge_single( $permalink );
 				}
 
 				// Purge taxonomy term URLs for related terms.
@@ -1175,7 +1175,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function update( $checked_data ) {
 
 			$muplugins_details = get_transient( 'mojo_plugin_assets' );
-			
+
 			if ( ! $muplugins_details ) {
 				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 				if ( ! is_wp_error( $muplugins_details )  ) {
