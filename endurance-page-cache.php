@@ -653,7 +653,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
-		 * Purge everything in a specific directory and optionally make a purge request.
 		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
