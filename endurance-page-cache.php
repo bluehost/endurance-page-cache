@@ -93,7 +93,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
-			add_action( 'save_post', array( $this, 'save_post' ) );
+			add_action( 'transition_post_status', array( $this, 'save_post' ), 10, 3 );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
 
 			add_action( 'comment_post', array( $this, 'comment' ) );
@@ -384,45 +384,52 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Purge appropriate caches when post when post is updated.
 		 *
-		 * @param int $post_id Post ID
+		 * @param string  $old_status The previous post status
+		 * @param string  $new_status The new post status
+		 * @param WP_Post $post The post object of the edited or created post
 		 */
-		public function save_post( $post_id ) {
+		public function save_post( $old_status, $new_status, $post ) {
 
-			// Check if post is public
-			if ( $this->is_public_post( $post_id ) ) {
+			// Skip purging for non-public post types
+			if ( ! get_post_type_object( $post->post_type )->public ) {
+				return;
+			}
 
-				// Purge post URL when post is updated.
-				$permalink = get_permalink( $post_id );
-				if ( $permalink ) {
-					$this->purge_single( $permalink );
-				}
+			// Skip purging if the post wasn't public before and isn't now
+			if ( 'publish' !== $old_status && 'publish' !== $new_status ) {
+				return;
+			}
 
-				// Purge taxonomy term URLs for related terms.
-				$taxonomies = get_post_taxonomies( $post_id );
-				foreach ( $taxonomies as $taxonomy ) {
-					if ( $this->is_public_taxonomy( $taxonomy ) ) {
-						$terms = get_the_terms( $post_id, $taxonomy );
-						if ( is_array( $terms ) ) {
-							foreach ( $terms as $term ) {
-								$term_link = get_term_link( $term );
-								$this->purge_single( $term_link );
-							}
+			// Purge post URL when post is updated.
+			$permalink = get_permalink( $post );
+			if ( $permalink ) {
+				$this->purge_single( $permalink );
+			}
+
+			// Purge taxonomy term URLs for related terms.
+			$taxonomies = get_post_taxonomies( $post );
+			foreach ( $taxonomies as $taxonomy ) {
+				if ( $this->is_public_taxonomy( $taxonomy ) ) {
+					$terms = get_the_terms( $post, $taxonomy );
+					if ( is_array( $terms ) ) {
+						foreach ( $terms as $term ) {
+							$term_link = get_term_link( $term );
+							$this->purge_single( $term_link );
 						}
 					}
 				}
-
-				// Purge post type archive URL when post is updated.
-				$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
-				if ( $post_type_archive ) {
-					$this->purge_single( $post_type_archive );
-				}
-
-				// Purge date archive URL when post is updated.
-				$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
-				if ( ! empty( $post_date ) ) {
-					$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
-				}
 			}
+
+			// Purge post type archive URL when post is updated.
+			$post_type_archive = get_post_type_archive_link( $post->post_type );
+			if ( $post_type_archive ) {
+				$this->purge_single( $post_type_archive );
+			}
+
+			// Purge date archive URL when post is updated.
+			$year_archive      = get_year_link( (int) get_the_date( 'y', $post ) );
+			$year_archive_path = str_replace( get_site_url(), '', $year_archive );
+			$this->purge_dir( $year_archive_path );
 
 		}
 
@@ -660,29 +667,29 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function purge_dir( $dir = null ) {
 			if ( $this->use_file_cache() ) {
-			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
-				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			}
-			$dir = str_replace( '_index.html', '', $dir );
-			if ( is_dir( $dir ) ) {
-				$files = scandir( $dir );
-				if ( is_array( $files ) ) {
-					$files = array_diff( $files, array( '.', '..' ) );
+				if ( is_null( $dir ) || ! is_dir( $dir ) ) {
+					$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 				}
+				$dir = str_replace( '_index.html', '', $dir );
+				if ( is_dir( $dir ) ) {
+					$files = scandir( $dir );
+					if ( is_array( $files ) ) {
+						$files = array_diff( $files, array( '.', '..' ) );
+					}
 
-				if ( is_array( $files ) ) {
-					foreach ( $files as $file ) {
-						if ( is_dir( $dir . '/' . $file ) ) {
+					if ( is_array( $files ) ) {
+						foreach ( $files as $file ) {
+							if ( is_dir( $dir . '/' . $file ) ) {
 								$this->purge_dir( $dir . '/' . $file );
-						} elseif ( file_exists( $dir . '/' . $file ) ) {
-							unlink( $dir . '/' . $file );
+							} elseif ( file_exists( $dir . '/' . $file ) ) {
+								unlink( $dir . '/' . $file );
+							}
+						}
+						if ( 2 === count( scandir( $dir ) ) ) {
+							rmdir( $dir );
 						}
 					}
-					if ( 2 === count( scandir( $dir ) ) ) {
-						rmdir( $dir );
-					}
 				}
-			}
 			} else {
 				$this->purge_request( get_option( 'siteurl' ) . $dir . '/.*' );
 			}
@@ -1199,7 +1206,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( ! $muplugins_details ) {
 				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
 				if ( ! is_wp_error( $muplugins_details ) ) {
-				        set_transient( 'mojo_plugin_assets', $muplugins_details, 6 * HOUR_IN_SECONDS );
+					set_transient( 'mojo_plugin_assets', $muplugins_details, 6 * HOUR_IN_SECONDS );
 				}
 			}
 
