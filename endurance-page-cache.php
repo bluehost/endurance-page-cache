@@ -654,12 +654,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		/**
 		 * Purge everything in a specific directory and optionally make a purge request.
+		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
 		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
-		public function purge_all( $dir = null, $purge_request = true ) {
-
+		public function purge_dir( $dir = null ) {
+			if ( $this->use_file_cache() ) {
 			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 			}
@@ -673,7 +674,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( is_array( $files ) ) {
 					foreach ( $files as $file ) {
 						if ( is_dir( $dir . '/' . $file ) ) {
-							$this->purge_all( $dir . '/' . $file, false );
+								$this->purge_dir( $dir . '/' . $file );
 						} elseif ( file_exists( $dir . '/' . $file ) ) {
 							unlink( $dir . '/' . $file );
 						}
@@ -683,7 +684,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					}
 				}
 			}
-			if ( true === $purge_request ) {
+			} else {
+				$this->purge_request( get_option( 'siteurl' ) . $dir . '/.*' );
+			}
+		}
+
+		/**
+		 * Purge the cache for entire site
+		 */
+		public function purge_all() {
+			if ( $this->use_file_cache() ) {
+				$this->purge_dir();
+			} else {
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
 			}
 		}
