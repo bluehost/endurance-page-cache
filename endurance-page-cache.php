@@ -831,7 +831,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
 
 			if ( false === strpos( dirname( __FILE__ ), 'public_html' ) ) {
-				$additions .= 'Options -Indexes ' . "\n" . '
+				$additions .= '# BEGIN ENDURANCE PAGE CACHE REWRITES - set Assets Only to disable' . "\n" . 'Options -Indexes ' . "\n" . '
 				<IfModule mod_rewrite.c>
 					RewriteEngine On
 					RewriteBase ' . $base . '
@@ -841,7 +841,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
 					RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
 					RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
-				</IfModule>' . "\n";
+				</IfModule>' . "\n" . '# END ENDURANCE PAGE CACHE REWRITES' . "\n";
 			}
 
 			return $additions . $rules;
