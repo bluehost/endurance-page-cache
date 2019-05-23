@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 1.5
+ * Version: 1.6
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -65,9 +65,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function __construct() {
 
-			if ( defined( 'DOING_AJAX' ) ) {
-				return;
-			}
 			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				return;
 			}
@@ -96,7 +93,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
-			add_action( 'save_post', array( $this, 'save_post' ) );
+			add_action( 'transition_post_status', array( $this, 'save_post' ), 10, 3 );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
 
 			add_action( 'comment_post', array( $this, 'comment' ) );
@@ -118,6 +115,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
+
+			add_filter( 'got_rewrite', array( $this, 'force_rewrite' ) );
 		}
 
 		/**
@@ -237,6 +236,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			return $value;
+		}
+
+		/**
+		 * Checks if this environment caches requests on the current filesystem
+		 *
+		 * @return bool True if uses file system to cache
+		 */
+		public function use_file_cache() {
+			return false === strpos( dirname( __FILE__ ), 'public_html' );
 		}
 
 		/**
@@ -376,38 +384,92 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Purge appropriate caches when post when post is updated.
 		 *
-		 * @param int $post_id Post ID
+		 * @param string  $old_status The previous post status
+		 * @param string  $new_status The new post status
+		 * @param WP_Post $post The post object of the edited or created post
 		 */
-		public function save_post( $post_id ) {
+		public function save_post( $old_status, $new_status, $post ) {
+
+			// Skip purging for non-public post types
+			if ( ! get_post_type_object( $post->post_type )->public ) {
+				return;
+			}
+
+			// Skip purging if the post wasn't public before and isn't now
+			if ( 'publish' !== $old_status && 'publish' !== $new_status ) {
+				return;
+			}
 
 			// Purge post URL when post is updated.
-			$url = get_permalink( $post_id );
-			$this->purge_single( $url );
+			$permalink = get_permalink( $post );
+			if ( $permalink ) {
+				$this->purge_single( $permalink );
+			}
 
 			// Purge taxonomy term URLs for related terms.
-			$taxonomies = get_post_taxonomies( $post_id );
+			$taxonomies = get_post_taxonomies( $post );
 			foreach ( $taxonomies as $taxonomy ) {
-				$terms = get_the_terms( $post_id, $taxonomy );
-				if ( is_array( $terms ) ) {
-					foreach ( $terms as $term ) {
-						$term_link = get_term_link( $term );
-						$this->purge_single( $term_link );
+				if ( $this->is_public_taxonomy( $taxonomy ) ) {
+					$terms = get_the_terms( $post, $taxonomy );
+					if ( is_array( $terms ) ) {
+						foreach ( $terms as $term ) {
+							$term_link = get_term_link( $term );
+							$this->purge_single( $term_link );
+						}
 					}
 				}
 			}
 
 			// Purge post type archive URL when post is updated.
-			$post_type_archive = get_post_type_archive_link( get_post_type( $post_id ) );
+			$post_type_archive = get_post_type_archive_link( $post->post_type );
 			if ( $post_type_archive ) {
 				$this->purge_single( $post_type_archive );
 			}
 
 			// Purge date archive URL when post is updated.
-			$post_date = (array) json_decode( get_the_date( '{"\y":"Y","\m":"m","\d":"d"}', $post_id ) );
-			if ( ! empty( $post_date ) ) {
-				$this->purge_all( $this->uri_to_cache( get_year_link( $post_date['y'] ) ) );
+			$year_archive      = get_year_link( (int) get_the_date( 'y', $post ) );
+			$year_archive_path = str_replace( get_site_url(), '', $year_archive );
+			$this->purge_dir( $year_archive_path );
+
+		}
+
+		/**
+		 * Checks if a post is public.
+		 *
+		 * @param int $post_id The post ID.
+		 *
+		 * @return boolean
+		 */
+		public function is_public_post( $post_id ) {
+			$public = false;
+			if ( false === wp_is_post_autosave( $post_id ) ) {
+				$post_type = get_post_type( $post_id );
+				if ( $post_type ) {
+					$post_type_object = get_post_type_object( $post_type );
+					if ( $post_type_object && isset( $post_type_object->public ) ) {
+						$public = $post_type_object->public;
+					}
+				}
 			}
 
+			return $public;
+		}
+
+		/**
+		 * Checks if a taxonomy is public.
+		 *
+		 * @param string $taxonomy Taxonomy name.
+		 *
+		 * @return boolean
+		 */
+		public function is_public_taxonomy( $taxonomy ) {
+			$public          = false;
+			$taxonomy_object = get_taxonomy( $taxonomy );
+			if ( $taxonomy_object && isset( $taxonomy_object->public ) ) {
+				$public = $taxonomy_object->public;
+			}
+
+			return $public;
 		}
 
 		/**
@@ -445,7 +507,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$page .= "\n<!--Generated by Endurance Page Cache-->";
 				}
 
-				if ( false === strpos( dirname( __FILE__ ), 'public_html' ) ) {
+				if ( $this->use_file_cache() ) {
 					if ( ! is_dir( $path ) ) {
 						mkdir( $path, 0755, true );
 					}
@@ -558,6 +620,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$args = array(
 				'method'     => 'PURGE',
 				'timeout'    => '5',
+				'blocking'   => false,
 				'sslverify'  => false,
 				'headers'    => array(
 					'host' => $domain,
@@ -597,37 +660,48 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
-		 * Purge everything in a specific directory and optionally make a purge request.
+		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
 		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
-		public function purge_all( $dir = null, $purge_request = true ) {
-
-			if ( is_null( $dir ) || ! is_dir( $dir ) ) {
-				$dir = WP_CONTENT_DIR . '/endurance-page-cache';
-			}
-			$dir = str_replace( '_index.html', '', $dir );
-			if ( is_dir( $dir ) ) {
-				$files = scandir( $dir );
-				if ( is_array( $files ) ) {
-					$files = array_diff( $files, array( '.', '..' ) );
+		public function purge_dir( $dir = null ) {
+			if ( $this->use_file_cache() ) {
+				if ( is_null( $dir ) || ! is_dir( $dir ) ) {
+					$dir = WP_CONTENT_DIR . '/endurance-page-cache';
 				}
+				$dir = str_replace( '_index.html', '', $dir );
+				if ( is_dir( $dir ) ) {
+					$files = scandir( $dir );
+					if ( is_array( $files ) ) {
+						$files = array_diff( $files, array( '.', '..' ) );
+					}
 
-				if ( is_array( $files ) ) {
-					foreach ( $files as $file ) {
-						if ( is_dir( $dir . '/' . $file ) ) {
-							$this->purge_all( $dir . '/' . $file, false );
-						} elseif ( file_exists( $dir . '/' . $file ) ) {
-							unlink( $dir . '/' . $file );
+					if ( is_array( $files ) ) {
+						foreach ( $files as $file ) {
+							if ( is_dir( $dir . '/' . $file ) ) {
+								$this->purge_dir( $dir . '/' . $file );
+							} elseif ( file_exists( $dir . '/' . $file ) ) {
+								unlink( $dir . '/' . $file );
+							}
+						}
+						if ( 2 === count( scandir( $dir ) ) ) {
+							rmdir( $dir );
 						}
 					}
-					if ( 2 === count( scandir( $dir ) ) ) {
-						rmdir( $dir );
-					}
 				}
+			} else {
+				$this->purge_request( get_option( 'siteurl' ) . $dir . '/.*' );
 			}
-			if ( true === $purge_request ) {
+		}
+
+		/**
+		 * Purge the cache for entire site
+		 */
+		public function purge_all() {
+			if ( $this->use_file_cache() ) {
+				$this->purge_dir();
+			} else {
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
 			}
 		}
@@ -705,26 +779,29 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return bool
 		 */
 		public function is_cachable() {
+			global $wp_query;
 
 			$return = true;
 
 			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 				$return = false;
+			} elseif ( defined( 'DOING_AJAX' ) ) {
+				$return = false;
 			} elseif ( 'private' === get_post_status() ) {
 				$return = false;
-			} elseif ( is_404() ) {
+			} elseif ( isset( $wp_query ) && is_404() ) {
 				$return = false;
 			} elseif ( is_admin() ) {
 				$return = false;
 			} elseif ( false === get_option( 'permalink_structure' ) ) {
 				$return = false;
-			} elseif ( is_user_logged_in() ) {
+			} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
 				$return = false;
 			} elseif ( isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
 			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$return = false;
-			} elseif ( is_feed() ) {
+			} elseif ( isset( $wp_query ) && is_feed() ) {
 				$return = false;
 			}
 
@@ -780,7 +857,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$cache_url = str_replace( '//', '/', $cache_url );
 			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
 
-			if ( false === strpos( dirname( __FILE__ ), 'public_html' ) ) {
+			if ( $this->use_file_cache() ) {
 				$additions .= 'Options -Indexes ' . "\n" . '
 				<IfModule mod_rewrite.c>
 					RewriteEngine On
@@ -1098,7 +1175,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param int $new_value Cache level
 		 */
 		public function toggle_nginx( $new_value = 0 ) {
-			if ( false !== strpos( dirname( __FILE__ ), 'public_html' ) ) {
+			if ( ! $this->use_file_cache() ) {
 				$domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$domain = str_replace( 'www.', '', $domain );
 				$path   = explode( 'public_html', dirname( __FILE__ ) );
@@ -1124,7 +1201,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function update( $checked_data ) {
 
-			$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+			$muplugins_details = get_transient( 'mojo_plugin_assets' );
+
+			if ( ! $muplugins_details ) {
+				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+				if ( ! is_wp_error( $muplugins_details ) ) {
+					set_transient( 'mojo_plugin_assets', $muplugins_details, 6 * HOUR_IN_SECONDS );
+				}
+			}
 
 			if ( is_wp_error( $muplugins_details ) || ! isset( $muplugins_details['body'] ) ) {
 				return $checked_data;
@@ -1146,6 +1230,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			return $checked_data;
+		}
+
+		/**
+		 * Filter to force got_mod_rewrite() to true
+		 *
+		 * On CLI requests, mod_rewrite is unavailable, so it fails to update
+		 * the .htaccess file when save_mod_rewrite_rules() is called. This
+		 * forces that to be true so updates from WP CLI work.
+		 *
+		 * @param bool $got_rewrite Value of apache_mod_loaded('mod_rewrite')
+		 *
+		 * @return bool true for WP CLI requests
+		 */
+		public function force_rewrite( $got_rewrite ) {
+			if ( defined( 'WP_CLI' ) && WP_CLI ) {
+				return true;
+			}
+			return $got_rewrite;
 		}
 	}
 
