@@ -54,11 +54,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $force_purge = false;
 
 		/**
-		 * A collection of hashes representing purged items.
+		 * A collection of purged items. The key is a hash of the URI and the value is the expiration timestamp.
 		 *
 		 * @var array
 		 */
 		public $purged = array();
+
+		/**
+		 * Whether or not to update purge list (transient: epc_purged).
+		 *
+		 * @var bool
+		 */
+		public $should_update_purges = false;
 
 		/**
 		 * Endurance_Page_Cache constructor.
@@ -68,6 +75,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				return;
 			}
+
+			$this->purged = array_filter( (array) get_transient( 'epc_purged' ) );
 
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -84,6 +93,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
+				add_action( 'shutdown', array( $this, 'shutdown' ) );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
@@ -585,19 +595,50 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
-		 * @param string $value URI being purged
+		 * @param string $uri URI being purged
 		 *
-		 * @return bool
+		 * @return bool True if additional purges should be avoided, false otherwise.
 		 */
-		public function purge_throttle( $value ) {
-			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( ( true === $purged || in_array( md5( $value ), $this->purged, true ) ) && false === $this->force_purge ) {
-				return true;
-			}
-			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
-			$this->purged[] = md5( $value );
+		public function should_throttle( $uri ) {
 
-			return false;
+			$should_throttle = false;
+
+			$this->should_update_purges = true;
+
+			$hash = md5( $uri );
+
+			if ( array_key_exists( $hash, $this->purged ) ) {
+				if ( $this->purged[ $hash ] < time() ) {
+					unset( $this->purged[ $hash ] );
+				} else {
+					$should_throttle = true;
+				}
+			}
+
+			$this->purged[ $hash ] = time() + 60;
+
+			return $should_throttle;
+		}
+
+		/**
+		 * Actions that should take place when the page is done loading.
+		 */
+		public function shutdown() {
+			if ( $this->should_update_purges ) {
+				$purged = array_filter( $this->purged, array( $this, 'filter_expired_timestamps' ) );
+				set_transient( 'epc_purged', $purged, 60 );
+			}
+		}
+
+		/**
+		 * Filters an array of timestamp values and removes items that have expired.
+		 *
+		 * @param int $timestamp Timestamp
+		 *
+		 * @return bool Whether or not the value should be kept.
+		 */
+		public function filter_expired_timestamps( $timestamp ) {
+			return $timestamp > time();
 		}
 
 		/**
@@ -609,7 +650,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			global $wp_version;
 
-			if ( true === $this->purge_throttle( $uri ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri ) ) {
 				return;
 			}
 
@@ -663,7 +704,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
-		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
 		public function purge_dir( $dir = null ) {
 			if ( $this->use_file_cache() ) {
@@ -712,6 +752,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $uri URI to be purged.
 		 */
 		public function purge_single( $uri ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri ) ) {
+				return;
+			}
+
 			$this->purge_request( $uri );
 			$this->purge_request( home_url() );
 			$cache_file = $this->uri_to_cache( $uri );
@@ -1247,6 +1292,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				return true;
 			}
+
 			return $got_rewrite;
 		}
 	}
