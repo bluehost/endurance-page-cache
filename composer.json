@@ -27,24 +27,16 @@
       "url": "https://satis.wpteamhub.com"
     }
   ],
-  "require": {},
   "require-dev": {
     "johnpbloch/wordpress": "^5.0",
-    "bluehost/wp-php-standards": "^1.0",
     "phpunit/phpunit": "^6.5.14",
-    "wp-phpunit/wp-phpunit": "^5.0"
+    "wp-phpunit/wp-phpunit": "^5.0",
+    "bluehost/wp-php-standards": "@stable"
   },
   "scripts": {
     "lint": [
-      "vendor/bin/phpcs --ignore=*/vendor/* ."
+      "vendor/bin/phpcs endurance-page-cache.php --standard=Bluehost"
     ],
     "phpunit": "./vendor/bin/phpunit -c phpunit.xml"
-  },
-  "extra": {
-    "phpcs-config": {
-      "colors": true,
-      "default_standard": "Bluehost",
-      "testVersion": "5.2-"
-    }
   }
 }
