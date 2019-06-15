@@ -195,7 +195,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				1 => 'Assets Only',
 				2 => 'Normal',
 				3 => 'Advanced',
-				4 => 'Agressive',
+				4 => 'Aggressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
 				if ( $i !== $cache_level ) {
