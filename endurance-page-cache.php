@@ -54,18 +54,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $force_purge = false;
 
 		/**
-		 * A collection of purged items. The key is a hash of the URI and the value is the expiration timestamp.
+		 * A collection of throttled items grouped by type where the key is a hash of the URI and the value is the expiration timestamp.
 		 *
 		 * @var array
 		 */
-		public $purged = array();
+		public $throttled = array();
 
 		/**
-		 * Whether or not to update purge list (transient: epc_purged).
+		 * Whether or not to update list of throttled items (transient: epc_throttled).
 		 *
 		 * @var bool
 		 */
-		public $should_update_purges = false;
+		public $should_update_throttled_items = false;
 
 		/**
 		 * Endurance_Page_Cache constructor.
@@ -76,7 +76,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
-			$this->purged = array_filter( (array) get_transient( 'epc_purged' ) );
+			$this->throttled = array_filter( (array) get_transient( 'epc_throttled' ) );
 
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -534,6 +534,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Make a request to purge the entire CDN
 		 */
 		public function purge_cdn() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'cdn', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$endpoint      = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
 				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
@@ -576,6 +581,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
 		 */
 		public function purge_cdn_single( $pattern = '' ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $pattern, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$pattern = rawurlencode( $pattern );
 				$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
@@ -596,26 +606,27 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
 		 * @param string $uri URI being purged
+		 * @param string $type The type of throttling
 		 *
 		 * @return bool True if additional purges should be avoided, false otherwise.
 		 */
-		public function should_throttle( $uri ) {
+		public function should_throttle( $uri, $type ) {
 
 			$should_throttle = false;
 
-			$this->should_update_purges = true;
+			$this->should_update_throttled_items = true;
 
 			$hash = md5( $uri );
 
-			if ( array_key_exists( $hash, $this->purged ) ) {
-				if ( $this->purged[ $hash ] < time() ) {
-					unset( $this->purged[ $hash ] );
-				} else {
+			if ( isset( $this->throttled[ $type ], $this->throttled[ $type ][ $hash ] ) ) {
+				if ( $this->is_timestamp_valid( $this->throttled[ $type ][ $hash ] ) ) {
 					$should_throttle = true;
 				}
 			}
 
-			$this->purged[ $hash ] = time() + 60;
+			if ( ! $should_throttle ) {
+				$this->throttled[ $type ][ $hash ] = time() + MINUTE_IN_SECONDS;
+			}
 
 			return $should_throttle;
 		}
@@ -624,20 +635,23 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Actions that should take place when the page is done loading.
 		 */
 		public function shutdown() {
-			if ( $this->should_update_purges ) {
-				$purged = array_filter( $this->purged, array( $this, 'filter_expired_timestamps' ) );
-				set_transient( 'epc_purged', $purged, 60 );
+			if ( $this->should_update_throttled_items ) {
+				$throttled = [];
+				foreach ( $this->throttled as $type => $group ) {
+					$throttled[ $type ] = array_filter( $group, array( $this, 'is_timestamp_valid' ) );
+				}
+				set_transient( 'epc_throttled', $throttled, 60 );
 			}
 		}
 
 		/**
-		 * Filters an array of timestamp values and removes items that have expired.
+		 * Returns true when a timestamp is in the future, or false when it is in the past (expired).
 		 *
 		 * @param int $timestamp Timestamp
 		 *
-		 * @return bool Whether or not the value should be kept.
+		 * @return bool
 		 */
-		public function filter_expired_timestamps( $timestamp ) {
+		public function is_timestamp_valid( $timestamp ) {
 			return $timestamp > time();
 		}
 
@@ -650,7 +664,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			global $wp_version;
 
-			if ( ! $this->force_purge && true === $this->should_throttle( $uri ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
 				return;
 			}
 
@@ -706,6 +720,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string|null $dir Directory to be purged
 		 */
 		public function purge_dir( $dir = null ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $dir, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 					$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -739,6 +758,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge the cache for entire site
 		 */
 		public function purge_all() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'all', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				$this->purge_dir();
 			} else {
@@ -753,7 +777,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function purge_single( $uri ) {
 
-			if ( ! $this->force_purge && true === $this->should_throttle( $uri ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
 				return;
 			}
 

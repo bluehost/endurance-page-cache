@@ -24,8 +24,11 @@ class ShouldThrottleTest extends WP_UnitTestCase {
 
 		$uri = 'https://www.google.com';
 
-		$this->assertEquals( false, $this->instance->should_throttle( $uri ), 'Failed asserting that should_throttle() returned false.' );
-		$this->assertEquals( true, $this->instance->should_throttle( $uri ), 'Failed asserting that should_throttle() returned true.' );
+		$this->assertEquals( false, $this->instance->should_throttle( $uri, 'page' ), 'Failed asserting that should_throttle() returned false.' );
+		$this->assertEquals( true, $this->instance->should_throttle( $uri, 'page' ), 'Failed asserting that should_throttle() returned true.' );
+
+		$this->assertEquals( false, $this->instance->should_throttle( $uri . '/', 'page' ), 'Failed asserting that should_throttle() returned false.' );
+		$this->assertEquals( false, $this->instance->should_throttle( $uri . '/', 'other' ), 'Failed asserting that should_throttle() returned false.' );
 
 	}
 
