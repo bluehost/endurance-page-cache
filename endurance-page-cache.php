@@ -198,14 +198,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param array $args Settings
 		 */
 		public function output_cache_settings( $args ) {
-			$cache_level = get_option( $args['field'], 2 );
+			$cache_level = absint( get_option( $args['field'], 2 ) );
 			echo '<select name="' . esc_attr( $args['field'] ) . '">';
 			$cache_levels = array(
 				0 => 'Off',
 				1 => 'Assets Only',
 				2 => 'Normal',
 				3 => 'Advanced',
-				4 => 'Agressive',
+				4 => 'Aggressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
 				if ( $i !== $cache_level ) {
