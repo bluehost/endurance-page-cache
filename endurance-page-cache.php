@@ -69,12 +69,29 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
-			$this->cache_level = get_option( 'endurance_cache_level', 2 );
+			$this->cache_level = $this->get_cache_level();
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
 			$this->hooks();
+		}
+
+		/**
+		 * Retrieves the cache level from the database
+		 *
+		 * If cache level is set higher than 3, then it will reset it down to level 3
+		 * @return int
+		 */
+		public function get_cache_level() {
+			$level = absint( get_option( 'endurance_cache_level', 2 ) );
+
+			if ( $level > 3 ) {
+				$level = 3;
+				update_option( 'endurance_cache_level', $level );
+			}
+
+			return $level;
 		}
 
 		/**
@@ -195,7 +212,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				1 => 'Assets Only',
 				2 => 'Normal',
 				3 => 'Advanced',
-				4 => 'Aggressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
 				if ( $i !== $cache_level ) {
@@ -849,7 +865,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_rewrites( $rules ) {
-			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
+			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 3 ) {
 				$this->cache_level = 2;
 			}
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
@@ -1088,20 +1104,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$level                = (int) $level;
 			$original_expirations = get_option( 'epc_filetype_expirations', array() );
 			switch ( $level ) {
-				case 4:
-					$new_expirations = array(
-						'image/jpg'       => '1 year',
-						'image/jpeg'      => '1 year',
-						'image/gif'       => '1 year',
-						'image/png'       => '1 year',
-						'application/pdf' => '1 month',
-						'text/css'        => '1 year',
-						'text/javascript' => '1 year',
-						'text/html'       => '5 minutes',
-						'default'         => '1 week',
-					);
-					break;
-
 				case 3:
 					$new_expirations = array(
 						'image/jpg'       => '1 week',
