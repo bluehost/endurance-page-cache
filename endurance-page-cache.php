@@ -61,6 +61,51 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $purged = array();
 
 		/**
+		 * UDEV Purge Buffer
+		 * 
+		 * This parameter determines whether to hit the UDEV Cache Purge API.
+		 * 
+		 * Set to false, no request is made.
+		 * Set to true or an empty array all cached resources are purged.
+		 * Set to array of relative paths to purge specified resources only.
+		 * 
+		 * @var boolean|array
+		 */
+		protected $udev_purge_buffer = false;
+
+		/**
+		 * UDEV Cache Purge API Root URL.
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_root = 'https://cachepurge.bluehost.com';
+
+		/**
+		 * UDEV Cache Purge API version string. First tag v0.
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_version = 'v0';
+
+		/**
+		 * UDEV Cache Purge API endpoint
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_endpoint = 'purge';
+
+		/**
+		 * UDEV Cache Purge API services.
+		 * 
+		 * PARAMETERS:
+		 * 'cf'  => 1|0 (default 1)
+		 * 'epc' => 1|0 (default 0)
+		 * 
+		 * @var array
+		 */
+		protected static $udev_api_services = array( 'cf' => 1, 'epc' => 0 );
+
+		/**
 		 * Endurance_Page_Cache constructor.
 		 */
 		public function __construct() {
@@ -134,6 +179,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 
 			add_filter( 'got_rewrite', array( $this, 'force_rewrite' ) );
+
+			add_action( 'shutdown', array( $this, 'udev_cache_purge_via_buffer' ) );
 		}
 
 		/**
@@ -646,6 +693,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
 			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
 
+			// TODO: Valid check for Cloudflare status
+			$is_cloudflare_active = true;
+
+			if ( $is_cloudflare_active ) {
+				$this->udev_cache_populate_buffer( $uri );
+			}
+
 			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
 			}
@@ -718,6 +772,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->use_file_cache() ) {
 				$this->purge_dir();
 			} else {
+				$this->udev_purge_buffer = array();
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
 			}
 		}
@@ -1250,6 +1305,97 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return true;
 			}
 			return $got_rewrite;
+		}
+
+		/**
+		 * Primary function for the UDEV Purge Cache API. Makes non-blocking request for current install cache purges.
+		 * 
+		 * Calling this method with *no* parameters triggers a full cache wipe for the domain.
+		 * Calling this method with relative paths to resources will purge just those resources.
+		 *
+		 * @param array $resources (Site paths, image assets, scripts, styles, files, etc)
+		 * @param array $override_services (see defaults on $this->udev_api_services)
+		 * @return void
+		 */
+		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
+
+			$hosts 		= array( get_site_url( null, '', 'relative' ) );
+			$services 	= ! empty( $override_services ) ? $override_services : $this->udev_api_services;
+
+			wp_remote_post(
+				$this->udev_create_request_uri( $services ),
+				array(
+					'blocking' 	=> false,
+					'body'		=> $this->udev_create_request_body( $hosts, $resources ),
+					'compress'	=> true,
+					'headers'	=> array(
+						'X-EPC-PLUGIN-PURGE' => 1,
+						'content-type'		 => 'application/json',
+					),
+					'sslverify'  => false,
+					'user-agent' => 'WordPress/' . $wp_version . '; ' . get_site_url( null, '', 'relative' ) . '; EPC/v' . EPC_VERSION,
+				)
+			);
+		}
+
+		/**
+		 * Build request URL and params for UDEV Purge Cache API.
+		 *
+		 * @param array $services
+		 * @return void
+		 */
+		protected function udev_cache_api_uri( $services ) {
+			return trailingslashit( $this->udev_api_root )
+					. trailingslashit( $this->udev_api_ver )
+					. $this->udev_api_endpoint
+					. '?' 
+					. http_build_query( $services );
+		}
+
+		/**
+		 * Take hosts (and perhaps specific resources) to purge and encode JSON for request body.
+		 *
+		 * @param array $hosts
+		 * @param array $resources
+		 * @return string|false
+		 */
+		protected function udev_create_request_body( $hosts, $resources ) {
+			$request = array( 'hosts' => $hosts );
+
+			if ( ! empty( $resources ) ) {
+				$request['assets'] = $resources;
+			}
+
+			return wp_json_encode( $request );
+		}
+
+		/**
+		 * Takes full URI and adds to $this->udev_purge_buffer. Typically fires in $this->purge_request().
+		 * Note that $this->purge_all() presets an empty array, which denotes a full domain purge.
+		 *
+		 * @param string $uri
+		 * @return void
+		 */
+		protected function udev_cache_populate_buffer( $uri ) {
+			if ( is_array( $this->udev_purge_buffer ) && empty( $this->udev_purge_buffer ) ) {
+				return true; // purge all
+			} elseif ( is_array( $this->udev_purge_buffer ) ) {
+				$this->udev_purge_buffer[] = wp_parse_url( $uri, PHP_URL_PATH );
+			} else {
+				$this->udev_purge_buffer = array( wp_parse_url( $uri, PHP_URL_PATH ) );
+			}
+		}
+
+		/**
+		 * Takes all specified resources in $this->udev_purge_buffer (or empty array denoting full purge)
+		 * and makes cache purge request to UDEV Cache API.
+		 *
+		 * @return void
+		 */
+		protected function udev_cache_purge_via_buffer() {
+			if ( ! empty( $this->udev_purge_buffer ) || is_array( $this->udev_purge_buffer ) ) {
+				$this->udev_cache_purge( $this->udev_purge_buffer );
+			}
 		}
 	}
 
