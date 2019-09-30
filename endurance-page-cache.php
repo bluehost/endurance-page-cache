@@ -1341,13 +1341,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return void
 		 */
 		protected function udev_cache_api_uri( $services ) {
-			$full = trailingslashit( static::$udev_api_root )
+			return trailingslashit( static::$udev_api_root )
 					. trailingslashit( static::$udev_api_version )
 					. static::$udev_api_endpoint
 					. '?' 
 					. http_build_query( $services );
-			// error_log( var_export( $full, true ) );
-			return $full;
 		}
 
 		/**
@@ -1363,8 +1361,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( ! empty( $resources ) ) {
 				$request['assets'] = $resources;
 			}
-
-			// error_log( var_export( wp_json_encode( $request ), true ) );
 
 			return wp_json_encode( $request );
 		}
