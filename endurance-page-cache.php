@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 1.6
+ * Version: 1.7beta
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -16,7 +16,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', 1.6 );
+define( 'EPC_VERSION', 1.7 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -693,12 +693,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
 			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
 
-			// TODO: Valid check for Cloudflare status
-			$is_cloudflare_active = true;
-
-			if ( $is_cloudflare_active ) {
-				$this->udev_cache_populate_buffer( $uri );
-			}
+			$this->udev_cache_populate_buffer( $uri );
 
 			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
@@ -1314,16 +1309,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Calling this method with relative paths to resources will purge just those resources.
 		 *
 		 * @param array $resources (Site paths, image assets, scripts, styles, files, etc)
-		 * @param array $override_services (see defaults on $this->udev_api_services)
+		 * @param array $override_services (see defaults on self::$udev_api_services)
 		 * @return void
 		 */
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
-
-			$hosts 		= array( get_site_url( null, '', 'relative' ) );
-			$services 	= ! empty( $override_services ) ? $override_services : $this->udev_api_services;
+			global $wp_version;
+			
+			$hosts 		= array( wp_parse_url( home_url(), PHP_URL_HOST ) );
+			$services 	= ! empty( $override_services ) ? $override_services : self::$udev_api_services;
 
 			wp_remote_post(
-				$this->udev_create_request_uri( $services ),
+				$this->udev_cache_api_uri( $services ),
 				array(
 					'blocking' 	=> false,
 					'body'		=> $this->udev_create_request_body( $hosts, $resources ),
@@ -1333,7 +1329,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'content-type'		 => 'application/json',
 					),
 					'sslverify'  => false,
-					'user-agent' => 'WordPress/' . $wp_version . '; ' . get_site_url( null, '', 'relative' ) . '; EPC/v' . EPC_VERSION,
+					'user-agent' => 'WordPress/' . $wp_version . '; ' . wp_parse_url( home_url(), PHP_URL_HOST ) . '; EPC/v' . EPC_VERSION,
 				)
 			);
 		}
@@ -1345,11 +1341,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return void
 		 */
 		protected function udev_cache_api_uri( $services ) {
-			return trailingslashit( $this->udev_api_root )
-					. trailingslashit( $this->udev_api_ver )
-					. $this->udev_api_endpoint
+			$full = trailingslashit( static::$udev_api_root )
+					. trailingslashit( static::$udev_api_version )
+					. static::$udev_api_endpoint
 					. '?' 
 					. http_build_query( $services );
+			// error_log( var_export( $full, true ) );
+			return $full;
 		}
 
 		/**
@@ -1365,6 +1363,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( ! empty( $resources ) ) {
 				$request['assets'] = $resources;
 			}
+
+			// error_log( var_export( wp_json_encode( $request ), true ) );
 
 			return wp_json_encode( $request );
 		}
@@ -1392,7 +1392,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return void
 		 */
-		protected function udev_cache_purge_via_buffer() {
+		public function udev_cache_purge_via_buffer() {
 			if ( ! empty( $this->udev_purge_buffer ) || is_array( $this->udev_purge_buffer ) ) {
 				$this->udev_cache_purge( $this->udev_purge_buffer );
 			}
