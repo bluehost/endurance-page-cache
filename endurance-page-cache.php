@@ -54,11 +54,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $force_purge = false;
 
 		/**
-		 * A collection of hashes representing purged items.
+		 * A collection of throttled items grouped by type where the key is a hash of the URI and the value is the expiration timestamp.
 		 *
 		 * @var array
 		 */
-		public $purged = array();
+		public $throttled = array();
+
+		/**
+		 * Whether or not to update list of throttled items (transient: epc_throttled).
+		 *
+		 * @var bool
+		 */
+		public $should_update_throttled_items = false;
 
 		/**
 		 * UDEV Purge Buffer
@@ -114,7 +121,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
-			$this->cache_level = $this->get_cache_level();
+			$this->throttled = array_filter( (array) get_transient( 'epc_throttled' ) );
+
+			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
@@ -146,6 +155,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
+				add_action( 'shutdown', array( $this, 'shutdown' ) );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
@@ -587,6 +597,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Make a request to purge the entire CDN
 		 */
 		public function purge_cdn() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'cdn', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$endpoint      = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
 				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
@@ -629,6 +644,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
 		 */
 		public function purge_cdn_single( $pattern = '' ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $pattern, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$pattern = rawurlencode( $pattern );
 				$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
@@ -648,19 +668,54 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
-		 * @param string $value URI being purged
+		 * @param string $uri URI being purged
+		 * @param string $type The type of throttling
+		 *
+		 * @return bool True if additional purges should be avoided, false otherwise.
+		 */
+		public function should_throttle( $uri, $type ) {
+
+			$should_throttle = false;
+
+			$this->should_update_throttled_items = true;
+
+			$hash = md5( $uri );
+
+			if ( isset( $this->throttled[ $type ], $this->throttled[ $type ][ $hash ] ) ) {
+				if ( $this->is_timestamp_valid( $this->throttled[ $type ][ $hash ] ) ) {
+					$should_throttle = true;
+				}
+			}
+
+			if ( ! $should_throttle ) {
+				$this->throttled[ $type ][ $hash ] = time() + MINUTE_IN_SECONDS;
+			}
+
+			return $should_throttle;
+		}
+
+		/**
+		 * Actions that should take place when the page is done loading.
+		 */
+		public function shutdown() {
+			if ( $this->should_update_throttled_items ) {
+				$throttled = [];
+				foreach ( $this->throttled as $type => $group ) {
+					$throttled[ $type ] = array_filter( $group, array( $this, 'is_timestamp_valid' ) );
+				}
+				set_transient( 'epc_throttled', $throttled, 60 );
+			}
+		}
+
+		/**
+		 * Returns true when a timestamp is in the future, or false when it is in the past (expired).
+		 *
+		 * @param int $timestamp Timestamp
 		 *
 		 * @return bool
 		 */
-		public function purge_throttle( $value ) {
-			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( ( true === $purged || in_array( md5( $value ), $this->purged, true ) ) && false === $this->force_purge ) {
-				return true;
-			}
-			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
-			$this->purged[] = md5( $value );
-
-			return false;
+		public function is_timestamp_valid( $timestamp ) {
+			return $timestamp > time();
 		}
 
 		/**
@@ -672,7 +727,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			global $wp_version;
 
-			if ( true === $this->purge_throttle( $uri ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
 				return;
 			}
 
@@ -728,9 +783,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
-		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
 		public function purge_dir( $dir = null ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $dir, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 					$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -764,6 +823,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge the cache for entire site
 		 */
 		public function purge_all() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'all', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				$this->purge_dir();
 			} else {
@@ -778,6 +842,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $uri URI to be purged.
 		 */
 		public function purge_single( $uri ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
+				return;
+			}
+
 			$this->purge_request( $uri );
 			$this->purge_request( home_url() );
 			$cache_file = $this->uri_to_cache( $uri );
@@ -1302,6 +1371,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				return true;
 			}
+
 			return $got_rewrite;
 		}
 
