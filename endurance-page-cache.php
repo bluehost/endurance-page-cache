@@ -793,6 +793,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$image_urls = $this->extract_image_urls( $content );
 					foreach ( $image_urls as $image_url ) {
 						$this->purge_cdn_single( wp_parse_url( $image_url, PHP_URL_PATH ) . '$' );
+						if ( ! empty( $this->udev_purge_buffer ) ) {
+							$this->udev_purge_buffer[] = wp_parse_url( $image_url, PHP_URL_PATH );
+						}
 					}
 				}
 			}
