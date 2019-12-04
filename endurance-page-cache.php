@@ -11,6 +11,17 @@
  * @package EndurancePageCache
  */
 
+ /**
+  * Endurance Page Cache is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+  *
+  * Endurance Page Cache is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  * You should have received a copy of the GNU General Public License along with Endurance Page Cache; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+  * 
+  * @license GPL-v2-or-later
+  * @link https://github.com/bluehost/endurance-page-cache/LICENSE
+  * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository above)
+  */
+
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) {
 	die;
@@ -1387,6 +1398,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
 			global $wp_version;
+
+			if ( 
+				$this->use_file_cache() 
+				|| ( ! empty( $brand = get_option('mm_brand') ) && 'BlueHost' !== $brand )  
+			) {
+				return;
+			}
 			
 			$hosts 		= array( wp_parse_url( home_url(), PHP_URL_HOST ) );
 			$services 	= ! empty( $override_services ) ? $override_services : self::$udev_api_services;
