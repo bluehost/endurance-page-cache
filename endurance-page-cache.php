@@ -19,7 +19,7 @@
   * 
   * @license GPL-v2-or-later
   * @link https://github.com/bluehost/endurance-page-cache/LICENSE
-  * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository above)
+  * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository in the link above)
   */
 
 // Do not access file directly!
