@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 1.6
+ * Version: 1.7
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -11,12 +11,23 @@
  * @package EndurancePageCache
  */
 
+ /**
+  * Endurance Page Cache is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+  *
+  * Endurance Page Cache is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+  * You should have received a copy of the GNU General Public License along with Endurance Page Cache; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+  * 
+  * @license GPL-v2-or-later
+  * @link https://github.com/bluehost/endurance-page-cache/LICENSE
+  * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository in the link above)
+  */
+
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', 1.6 );
+define( 'EPC_VERSION', 1.7 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -54,11 +65,63 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $force_purge = false;
 
 		/**
-		 * A collection of hashes representing purged items.
+		 * A collection of throttled items grouped by type where the key is a hash of the URI and the value is the expiration timestamp.
 		 *
 		 * @var array
 		 */
-		public $purged = array();
+		public $throttled = array();
+
+		/**
+		 * Whether or not to update list of throttled items (transient: epc_throttled).
+		 *
+		 * @var bool
+		 */
+		public $should_update_throttled_items = false;
+
+		/**
+		 * UDEV Purge Buffer
+		 * 
+		 * This parameter determines whether to hit the UDEV Cache Purge API.
+		 * 
+		 * Set to false, no request is made.
+		 * Set to true or an empty array all cached resources are purged.
+		 * Set to array of relative paths to purge specified resources only.
+		 * 
+		 * @var boolean|array
+		 */
+		protected $udev_purge_buffer = false;
+
+		/**
+		 * UDEV Cache Purge API Root URL.
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_root = 'https://cachepurge.bluehost.com';
+
+		/**
+		 * UDEV Cache Purge API version string. First tag v0.
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_version = 'v0';
+
+		/**
+		 * UDEV Cache Purge API endpoint
+		 *
+		 * @var string
+		 */
+		protected static $udev_api_endpoint = 'purge';
+
+		/**
+		 * UDEV Cache Purge API services.
+		 * 
+		 * PARAMETERS:
+		 * 'cf'  => 1|0 (default 1)
+		 * 'epc' => 1|0 (default 0)
+		 * 
+		 * @var array
+		 */
+		protected static $udev_api_services = array( 'cf' => 1, 'epc' => 0 );
 
 		/**
 		 * Endurance_Page_Cache constructor.
@@ -69,6 +132,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
+			$this->throttled = array_filter( (array) get_transient( 'epc_throttled' ) );
+
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
@@ -78,12 +143,30 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Retrieves the cache level from the database
+		 *
+		 * If cache level is set higher than 3, then it will reset it down to level 3
+		 * @return int
+		 */
+		public function get_cache_level() {
+			$level = absint( get_option( 'endurance_cache_level', 2 ) );
+
+			if ( $level > 3 ) {
+				$level = 3;
+				update_option( 'endurance_cache_level', $level );
+			}
+
+			return $level;
+		}
+
+		/**
 		 * Setup all WordPress actions and filters.
 		 */
 		public function hooks() {
 			if ( $this->is_enabled( 'page' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
+				add_action( 'shutdown', array( $this, 'shutdown' ) );
 
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
@@ -117,6 +200,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
 
 			add_filter( 'got_rewrite', array( $this, 'force_rewrite' ) );
+
+			add_action( 'shutdown', array( $this, 'udev_cache_purge_via_buffer' ) );
 		}
 
 		/**
@@ -188,14 +273,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param array $args Settings
 		 */
 		public function output_cache_settings( $args ) {
-			$cache_level = get_option( $args['field'], 2 );
+			$cache_level = absint( get_option( $args['field'], 2 ) );
 			echo '<select name="' . esc_attr( $args['field'] ) . '">';
 			$cache_levels = array(
 				0 => 'Off',
 				1 => 'Assets Only',
 				2 => 'Normal',
 				3 => 'Advanced',
-				4 => 'Agressive',
 			);
 			foreach ( $cache_levels as $i => $label ) {
 				if ( $i !== $cache_level ) {
@@ -524,6 +608,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Make a request to purge the entire CDN
 		 */
 		public function purge_cdn() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'cdn', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$endpoint      = 'https://my.bluehost.com/cgi/wpapi/cdn_purge';
 				$domain        = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
@@ -566,6 +655,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $pattern (Optional) Pattern used to match assets that should be purged.
 		 */
 		public function purge_cdn_single( $pattern = '' ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $pattern, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( 'BlueHost' === get_option( 'mm_brand' ) ) {
 				$pattern = rawurlencode( $pattern );
 				$domain  = wp_parse_url( home_url(), PHP_URL_HOST );
@@ -585,19 +679,54 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
-		 * @param string $value URI being purged
+		 * @param string $uri URI being purged
+		 * @param string $type The type of throttling
+		 *
+		 * @return bool True if additional purges should be avoided, false otherwise.
+		 */
+		public function should_throttle( $uri, $type ) {
+
+			$should_throttle = false;
+
+			$this->should_update_throttled_items = true;
+
+			$hash = md5( $uri );
+
+			if ( isset( $this->throttled[ $type ], $this->throttled[ $type ][ $hash ] ) ) {
+				if ( $this->is_timestamp_valid( $this->throttled[ $type ][ $hash ] ) ) {
+					$should_throttle = true;
+				}
+			}
+
+			if ( ! $should_throttle ) {
+				$this->throttled[ $type ][ $hash ] = time() + MINUTE_IN_SECONDS;
+			}
+
+			return $should_throttle;
+		}
+
+		/**
+		 * Actions that should take place when the page is done loading.
+		 */
+		public function shutdown() {
+			if ( $this->should_update_throttled_items ) {
+				$throttled = [];
+				foreach ( $this->throttled as $type => $group ) {
+					$throttled[ $type ] = array_filter( $group, array( $this, 'is_timestamp_valid' ) );
+				}
+				set_transient( 'epc_throttled', $throttled, 60 );
+			}
+		}
+
+		/**
+		 * Returns true when a timestamp is in the future, or false when it is in the past (expired).
+		 *
+		 * @param int $timestamp Timestamp
 		 *
 		 * @return bool
 		 */
-		public function purge_throttle( $value ) {
-			$purged = get_transient( 'epc_purged_' . md5( $value ) );
-			if ( ( true === $purged || in_array( md5( $value ), $this->purged, true ) ) && false === $this->force_purge ) {
-				return true;
-			}
-			set_transient( 'epc_purged_' . md5( $value ), time(), 60 );
-			$this->purged[] = md5( $value );
-
-			return false;
+		public function is_timestamp_valid( $timestamp ) {
+			return $timestamp > time();
 		}
 
 		/**
@@ -609,7 +738,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			global $wp_version;
 
-			if ( true === $this->purge_throttle( $uri ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
 				return;
 			}
 
@@ -629,6 +758,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			);
 			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
 			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
+
+			$this->udev_cache_populate_buffer( $uri );
 
 			if ( preg_match( '/\.\*$/', $uri ) ) {
 				$this->purge_cdn();
@@ -663,9 +794,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge everything in a specific directory.
 		 *
 		 * @param string|null $dir Directory to be purged
-		 * @param bool        $purge_request Whether or not to make a purge request.
 		 */
 		public function purge_dir( $dir = null ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $dir, __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				if ( is_null( $dir ) || ! is_dir( $dir ) ) {
 					$dir = WP_CONTENT_DIR . '/endurance-page-cache';
@@ -699,9 +834,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Purge the cache for entire site
 		 */
 		public function purge_all() {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( 'all', __METHOD__ ) ) {
+				return;
+			}
+
 			if ( $this->use_file_cache() ) {
 				$this->purge_dir();
 			} else {
+				$this->udev_purge_buffer = array();
 				$this->purge_request( get_option( 'siteurl' ) . '/.*' );
 			}
 		}
@@ -712,6 +853,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param string $uri URI to be purged.
 		 */
 		public function purge_single( $uri ) {
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $uri, __METHOD__ ) ) {
+				return;
+			}
+
 			$this->purge_request( $uri );
 			$this->purge_request( home_url() );
 			$cache_file = $this->uri_to_cache( $uri );
@@ -727,6 +873,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					$image_urls = $this->extract_image_urls( $content );
 					foreach ( $image_urls as $image_url ) {
 						$this->purge_cdn_single( wp_parse_url( $image_url, PHP_URL_PATH ) . '$' );
+						if ( ! empty( $this->udev_purge_buffer ) ) {
+							$this->udev_purge_buffer[] = wp_parse_url( $image_url, PHP_URL_PATH );
+						}
 					}
 				}
 			}
@@ -849,7 +998,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_rewrites( $rules ) {
-			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 4 ) {
+			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 3 ) {
 				$this->cache_level = 2;
 			}
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
@@ -1088,20 +1237,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$level                = (int) $level;
 			$original_expirations = get_option( 'epc_filetype_expirations', array() );
 			switch ( $level ) {
-				case 4:
-					$new_expirations = array(
-						'image/jpg'       => '1 year',
-						'image/jpeg'      => '1 year',
-						'image/gif'       => '1 year',
-						'image/png'       => '1 year',
-						'application/pdf' => '1 month',
-						'text/css'        => '1 year',
-						'text/javascript' => '1 year',
-						'text/html'       => '5 minutes',
-						'default'         => '1 week',
-					);
-					break;
-
 				case 3:
 					$new_expirations = array(
 						'image/jpg'       => '1 week',
@@ -1247,7 +1382,107 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( defined( 'WP_CLI' ) && WP_CLI ) {
 				return true;
 			}
+
 			return $got_rewrite;
+		}
+
+		/**
+		 * Primary function for the UDEV Purge Cache API. Makes non-blocking request for current install cache purges.
+		 * 
+		 * Calling this method with *no* parameters triggers a full cache wipe for the domain.
+		 * Calling this method with relative paths to resources will purge just those resources.
+		 *
+		 * @param array $resources (Site paths, image assets, scripts, styles, files, etc)
+		 * @param array $override_services (see defaults on self::$udev_api_services)
+		 * @return void
+		 */
+		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
+			global $wp_version;
+
+			if ( 
+				$this->use_file_cache() 
+				|| ( ! empty( $brand = get_option('mm_brand') ) && 'BlueHost' !== $brand )  
+			) {
+				return;
+			}
+			
+			$hosts 		= array( wp_parse_url( home_url(), PHP_URL_HOST ) );
+			$services 	= ! empty( $override_services ) ? $override_services : self::$udev_api_services;
+
+			wp_remote_post(
+				$this->udev_cache_api_uri( $services ),
+				array(
+					'blocking' 	=> false,
+					'body'		=> $this->udev_create_request_body( $hosts, $resources ),
+					'compress'	=> true,
+					'headers'	=> array(
+						'X-EPC-PLUGIN-PURGE' => 1,
+						'content-type'		 => 'application/json',
+					),
+					'sslverify'  => false,
+					'user-agent' => 'WordPress/' . $wp_version . '; ' . wp_parse_url( home_url(), PHP_URL_HOST ) . '; EPC/v' . EPC_VERSION,
+				)
+			);
+		}
+
+		/**
+		 * Build request URL and params for UDEV Purge Cache API.
+		 *
+		 * @param array $services
+		 * @return void
+		 */
+		protected function udev_cache_api_uri( $services ) {
+			return trailingslashit( static::$udev_api_root )
+					. trailingslashit( static::$udev_api_version )
+					. static::$udev_api_endpoint
+					. '?' 
+					. http_build_query( $services );
+		}
+
+		/**
+		 * Take hosts (and perhaps specific resources) to purge and encode JSON for request body.
+		 *
+		 * @param array $hosts
+		 * @param array $resources
+		 * @return string|false
+		 */
+		protected function udev_create_request_body( $hosts, $resources ) {
+			$request = array( 'hosts' => $hosts );
+
+			if ( ! empty( $resources ) ) {
+				$request['assets'] = array_unique( array_filter( $resources ) );
+			}
+
+			return wp_json_encode( $request );
+		}
+
+		/**
+		 * Takes full URI and adds to $this->udev_purge_buffer. Typically fires in $this->purge_request().
+		 * Note that $this->purge_all() presets an empty array, which denotes a full domain purge.
+		 *
+		 * @param string $uri
+		 * @return void
+		 */
+		protected function udev_cache_populate_buffer( $uri ) {
+			if ( is_array( $this->udev_purge_buffer ) && empty( $this->udev_purge_buffer ) ) {
+				return true; // purge all
+			} elseif ( is_array( $this->udev_purge_buffer ) ) {
+				$this->udev_purge_buffer[] = wp_parse_url( $uri, PHP_URL_PATH );
+			} else {
+				$this->udev_purge_buffer = array( wp_parse_url( $uri, PHP_URL_PATH ) );
+			}
+		}
+
+		/**
+		 * Takes all specified resources in $this->udev_purge_buffer (or empty array denoting full purge)
+		 * and makes cache purge request to UDEV Cache API.
+		 *
+		 * @return void
+		 */
+		public function udev_cache_purge_via_buffer() {
+			if ( ! empty( $this->udev_purge_buffer ) || is_array( $this->udev_purge_buffer ) ) {
+				$this->udev_cache_purge( $this->udev_purge_buffer );
+			}
 		}
 	}
 
