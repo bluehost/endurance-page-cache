@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 1.7
+ * Version: 1.8
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', 1.7 );
+define( 'EPC_VERSION', 1.8 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -56,6 +56,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @var int
 		 */
 		public $cache_level = 2;
+
+		/**
+		 * Brands supporting cloudflare (from mm_brand option).
+		 *
+		 * @var array
+		 */
+		public $cloudflare_support = array( 'BlueHost', 'HostMonster', 'Just_Host' );
 
 		/**
 		 * Whether or not to force a purge.
@@ -1399,9 +1406,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
 			global $wp_version;
 
+			$brand = get_option( 'mm_brand' );
+
 			if ( 
 				$this->use_file_cache() 
-				|| ( ! empty( $brand = get_option('mm_brand') ) && 'BlueHost' !== $brand )  
+				|| ! in_array( $brand, $this->cloudflare_support )  
 			) {
 				return;
 			}
