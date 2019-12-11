@@ -62,7 +62,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		public $cloudflare_support = array( 'BlueHost', 'HostGator', 'Just_Host' );
+		public $cloudflare_support = array( 'BlueHost', 'HostMonster', 'Just_Host' );
 
 		/**
 		 * Whether or not to force a purge.
