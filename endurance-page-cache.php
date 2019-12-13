@@ -1459,7 +1459,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$request = array( 'hosts' => $hosts );
 
 			if ( ! empty( $resources ) ) {
-				$request['assets'] = array_unique( array_filter( $resources ) );
+				$request['assets'] = array_values( array_unique( array_filter( $resources ) ) );
 			}
 
 			return wp_json_encode( $request );
