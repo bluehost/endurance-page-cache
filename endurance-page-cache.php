@@ -1329,9 +1329,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				$cf_enabled = get_option( 'endurance_cloudflare_enabled', false );
+				$cf_enabled = (bool) get_option( 'endurance_cloudflare_enabled', false );
 
-				if ( $cf_enabled == true ) {
+				if ( $cf_enabled === true ) {
 					$new_value = '-1';
 				}
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
