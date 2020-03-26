@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 1.9
+ * Version: 1.10
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', 1.9 );
+define( 'EPC_VERSION', 1.10 );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -1253,22 +1253,22 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'text/css'        => '1 week',
 						'application/pdf' => '1 week',
 						'text/javascript' => '1 month',
-						'text/html'       => '5 minutes',
+						'text/html'       => '4 hours',
 						'default'         => '1 week',
 					);
 					break;
 
 				case 2:
 					$new_expirations = array(
-						'image/jpg'       => '6 hours',
-						'image/jpeg'      => '6 hours',
-						'image/gif'       => '6 hours',
-						'image/png'       => '6 hours',
-						'text/css'        => '6 hours',
+						'image/jpg'       => '24 hours',
+						'image/jpeg'      => '24 hours',
+						'image/gif'       => '24 hours',
+						'image/png'       => '24 hours',
+						'text/css'        => '24 hours',
 						'application/pdf' => '1 week',
-						'text/javascript' => '6 hours',
+						'text/javascript' => '24 hours',
 						'text/html'       => '5 minutes',
-						'default'         => '3 hours',
+						'default'         => '24 hours',
 					);
 					break;
 
@@ -1328,6 +1328,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$path = $path[0];
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
+				}
+				$cf_enabled = (bool) get_option( 'endurance_cloudflare_enabled', false );
+
+				if ( $cf_enabled === true ) {
+					$new_value = '-1';
 				}
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
 				@touch( '/etc/proxy_notify/' . $user ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
