@@ -1368,7 +1368,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 					if ( isset( $info['constant'] ) && defined( $info['constant'] ) ) {
 						if ( version_compare( $info['version'], constant( $info['constant'] ), '>' ) ) {
 							$file = wp_remote_get( $info['source'] );
-							if ( ! is_wp_error( $file ) && isset( $file['body'] ) && strpos( $file['body'], $info['constant'] ) ) {
+							if ( ! is_wp_error( $file ) && isset( $file['body'] ) && strpos( $file['body'], $info['constant'] ) && is_writable( WP_CONTENT_DIR . $info['destination'] ) ) {
 								file_put_contents( WP_CONTENT_DIR . $info['destination'], $file['body'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 							}
 						}
