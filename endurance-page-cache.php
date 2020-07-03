@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', 2.0.1 );
+define( 'EPC_VERSION', '2.0.1' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
