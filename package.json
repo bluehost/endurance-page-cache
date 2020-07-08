@@ -1,0 +1,26 @@
+{
+  "name": "endurance-page-cache",
+  "version": "2.0.2",
+  "description": "This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "lint": "npm run wp-env run composer run-script lint",
+    "test": "npm run wp-env run phpunit 'phpunit -c /var/www/html/wp-content/mu-plugins/phpunit.xml --verbose'",
+    "wp-env": "wp-env"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluehost/endurance-page-cache.git"
+  },
+  "author": "",
+  "license": "GPL-2.0+",
+  "bugs": {
+    "url": "https://github.com/bluehost/endurance-page-cache/issues"
+  },
+  "homepage": "https://github.com/bluehost/endurance-page-cache#readme",
+  "devDependencies": {
+    "@wordpress/env": "^1.6.0"
+  }
+}
