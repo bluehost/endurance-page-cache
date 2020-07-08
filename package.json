@@ -7,7 +7,8 @@
   },
   "scripts": {
     "lint": "npm run wp-env run composer run-script lint",
-    "test": "npm run wp-env run phpunit 'phpunit -c /var/www/html/wp-content/mu-plugins/phpunit.xml --verbose'",
+    "test": "npm run lint && npm run test:php",
+    "test:php": "npm run wp-env run phpunit 'phpunit -c /var/www/html/wp-content/mu-plugins/phpunit.xml --verbose'",
     "wp-env": "wp-env"
   },
   "repository": {

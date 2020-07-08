@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Lint & Test
 
 on:
   pull_request:
@@ -6,8 +6,8 @@ on:
     branches: [master]
 
 jobs:
-  unit-test:
-    name: PHPUnit Tests
+  test:
+    name: Lint & Test
 
     runs-on: ubuntu-latest
 

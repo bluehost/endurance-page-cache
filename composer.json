@@ -28,7 +28,8 @@
     }
   ],
   "require-dev": {
-    "wp-phpunit/wp-phpunit": "*",
+    "phpunit/phpunit": "^6.5.14",
+    "wp-phpunit/wp-phpunit": "5.4.2",
     "bluehost/wp-php-standards": "@stable"
   },
   "scripts": {
