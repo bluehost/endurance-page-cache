@@ -8,8 +8,6 @@
 >
     <php>
         <ini name="display_errors" value="true"/>
-        <env name="WP_PHPUNIT__TESTS_CONFIG" value="tests/wp-tests-config.php"/>
-        <env name="WP_DB_HOST" value="192.168.95.100:4093"/>
     </php>
     <testsuites>
         <testsuite name="Application Test Suite">

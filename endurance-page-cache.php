@@ -11,16 +11,16 @@
  * @package EndurancePageCache
  */
 
- /**
-  * Endurance Page Cache is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
-  *
-  * Endurance Page Cache is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-  * You should have received a copy of the GNU General Public License along with Endurance Page Cache; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-  * 
-  * @license GPL-v2-or-later
-  * @link https://github.com/bluehost/endurance-page-cache/LICENSE
-  * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository in the link above)
-  */
+/**
+ * Endurance Page Cache is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+ *
+ * Endurance Page Cache is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with Endurance Page Cache; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ *
+ * @license GPL-v2-or-later
+ * @link https://github.com/bluehost/endurance-page-cache/LICENSE
+ * (If this plugin was installed as a single file, a copy of the license is available in the distribution repository in the link above)
+ */
 
 // Do not access file directly!
 if ( ! defined( 'WPINC' ) ) {
@@ -87,13 +87,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		/**
 		 * UDEV Purge Buffer
-		 * 
+		 *
 		 * This parameter determines whether to hit the UDEV Cache Purge API.
-		 * 
+		 *
 		 * Set to false, no request is made.
 		 * Set to true or an empty array all cached resources are purged.
 		 * Set to array of relative paths to purge specified resources only.
-		 * 
+		 *
 		 * @var boolean|array
 		 */
 		protected $udev_purge_buffer = false;
@@ -121,14 +121,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		/**
 		 * UDEV Cache Purge API services.
-		 * 
+		 *
 		 * PARAMETERS:
 		 * 'cf'  => 1|0 (default 1)
 		 * 'epc' => 1|0 (default 0)
-		 * 
+		 *
 		 * @var array
 		 */
-		protected static $udev_api_services = array( 'cf' => 1, 'epc' => 0 );
+		protected static $udev_api_services = array(
+			'cf'  => 1,
+			'epc' => 0,
+		);
 
 		/**
 		 * Endurance_Page_Cache constructor.
@@ -153,6 +156,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Retrieves the cache level from the database
 		 *
 		 * If cache level is set higher than 3, then it will reset it down to level 3
+		 *
 		 * @return int
 		 */
 		public function get_cache_level() {
@@ -717,7 +721,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function shutdown() {
 			if ( $this->should_update_throttled_items ) {
-				$throttled = [];
+				$throttled = array();
 				foreach ( $this->throttled as $type => $group ) {
 					$throttled[ $type ] = array_filter( $group, array( $this, 'is_timestamp_valid' ) );
 				}
@@ -1331,7 +1335,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 				$cf_enabled = (bool) get_option( 'endurance_cloudflare_enabled', false );
 
-				if ( $cf_enabled === true ) {
+				if ( true === $cf_enabled ) {
 					$new_value = '-1';
 				}
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
@@ -1400,7 +1404,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 		/**
 		 * Primary function for the UDEV Purge Cache API. Makes non-blocking request for current install cache purges.
-		 * 
+		 *
 		 * Calling this method with *no* parameters triggers a full cache wipe for the domain.
 		 * Calling this method with relative paths to resources will purge just those resources.
 		 *
@@ -1413,25 +1417,24 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$brand = get_option( 'mm_brand' );
 
-			if ( 
-				$this->use_file_cache() 
-				|| ! in_array( $brand, $this->cloudflare_support )  
+			if ( $this->use_file_cache()
+				|| ! in_array( $brand, $this->cloudflare_support, true )
 			) {
 				return;
 			}
-			
-			$hosts 		= array( wp_parse_url( home_url(), PHP_URL_HOST ) );
-			$services 	= ! empty( $override_services ) ? $override_services : self::$udev_api_services;
+
+			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
+			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
 
 			wp_remote_post(
 				$this->udev_cache_api_uri( $services ),
 				array(
-					'blocking' 	=> false,
-					'body'		=> $this->udev_create_request_body( $hosts, $resources ),
-					'compress'	=> true,
-					'headers'	=> array(
+					'blocking'   => false,
+					'body'       => $this->udev_create_request_body( $hosts, $resources ),
+					'compress'   => true,
+					'headers'    => array(
 						'X-EPC-PLUGIN-PURGE' => 1,
-						'content-type'		 => 'application/json',
+						'content-type'       => 'application/json',
 					),
 					'sslverify'  => false,
 					'user-agent' => 'WordPress/' . $wp_version . '; ' . wp_parse_url( home_url(), PHP_URL_HOST ) . '; EPC/v' . EPC_VERSION,
@@ -1442,22 +1445,22 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Build request URL and params for UDEV Purge Cache API.
 		 *
-		 * @param array $services
-		 * @return void
+		 * @param array $services List of services
+		 * @return string URI to use for the udev cache API
 		 */
 		protected function udev_cache_api_uri( $services ) {
 			return trailingslashit( static::$udev_api_root )
 					. trailingslashit( static::$udev_api_version )
 					. static::$udev_api_endpoint
-					. '?' 
+					. '?'
 					. http_build_query( $services );
 		}
 
 		/**
 		 * Take hosts (and perhaps specific resources) to purge and encode JSON for request body.
 		 *
-		 * @param array $hosts
-		 * @param array $resources
+		 * @param array $hosts List of hosts
+		 * @param array $resources List of resources
 		 * @return string|false
 		 */
 		protected function udev_create_request_body( $hosts, $resources ) {
@@ -1474,8 +1477,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Takes full URI and adds to $this->udev_purge_buffer. Typically fires in $this->purge_request().
 		 * Note that $this->purge_all() presets an empty array, which denotes a full domain purge.
 		 *
-		 * @param string $uri
-		 * @return void
+		 * @param string $uri URI to add to udev purge buffer
+		 * @return true|void
 		 */
 		protected function udev_cache_populate_buffer( $uri ) {
 			if ( is_array( $this->udev_purge_buffer ) && empty( $this->udev_purge_buffer ) ) {
