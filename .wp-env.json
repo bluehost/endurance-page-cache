@@ -1,0 +1,6 @@
+{
+	"core": "WordPress/WordPress",
+	"mappings": {
+		"wp-content/mu-plugins": "."
+	}
+}
