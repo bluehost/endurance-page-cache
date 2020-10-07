@@ -1499,14 +1499,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Note that $this->purge_all() presets an empty array, which denotes a full domain purge.
 		 *
 		 * @param string $uri URI to add to udev purge buffer
-		 * @return true|void
+		 * @return void
 		 */
 		protected function udev_cache_populate_buffer( $uri ) {
-			if ( is_array( $this->udev_purge_buffer ) && empty( $this->udev_purge_buffer ) ) {
-				return true; // purge all
-			} elseif ( is_array( $this->udev_purge_buffer ) ) {
+			if ( is_array( $this->udev_purge_buffer ) ) {
 				$this->udev_purge_buffer[] = wp_parse_url( $uri, PHP_URL_PATH );
-			} else {
+			} elseif ( false === $this->udev_purge_buffer ) {
 				$this->udev_purge_buffer = array( wp_parse_url( $uri, PHP_URL_PATH ) );
 			}
 		}
