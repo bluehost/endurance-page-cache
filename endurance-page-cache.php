@@ -58,6 +58,20 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $cache_level = 2;
 
 		/**
+		 * Cloudflare enabled
+		 *
+		 * @var bool
+		 */
+		public $cloudflare_enabled = false;
+
+		/**
+		 * Cloudflare tier
+		 *
+		 * @var string
+		 */
+		public $cloudflare_tier = false;
+
+		/**
 		 * Brands supporting cloudflare (from mm_brand option).
 		 *
 		 * @var array
@@ -146,6 +160,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
+
+			$cloudflare_state = get_option( 'endurance_cloudflare_enabled', false );
+			$this->cloudflare_enabled = (bool) $cloudflare_state;
+			$this->cloudflare_tier = ('premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -616,11 +634,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
-		 * Make a request to purge the entire CDN
+		 * Make a request to purge the entire Sitelock CDN
 		 */
 		public function purge_cdn() {
 
-			if ( ! $this->force_purge && true === $this->should_throttle( 'cdn', __METHOD__ ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( 'sitelock_cdn', __METHOD__ ) ) {
+				return;
+			}
+
+			if (true === $this->cloudflare_enabled) {
 				return;
 			}
 
@@ -1333,9 +1355,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				$cf_enabled = (bool) get_option( 'endurance_cloudflare_enabled', false );
 
-				if ( true === $cf_enabled ) {
+				if ( true === $this->cloudflare_enabled ) {
 					$new_value = '-1';
 				}
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
