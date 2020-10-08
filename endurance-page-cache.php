@@ -104,7 +104,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		public $triggers = [];
+		public $triggers = array();
 
 		/**
 		 * UDEV Purge Buffer
@@ -169,6 +169,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
 			$cloudflare_state  = get_option( 'endurance_cloudflare_enabled', false );
+
 			$this->cloudflare_enabled = (bool) $cloudflare_state;
 			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
@@ -1440,7 +1441,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Add trigger for record keeping.
 		 *
-		 * @param string $trigger
+		 * @param string $trigger Typically an action but can be manually set in the event of a force purge.
 		 *
 		 * @return void
 		 */
