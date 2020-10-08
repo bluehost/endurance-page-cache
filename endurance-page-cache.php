@@ -69,7 +69,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var string
 		 */
-		public $cloudflare_tier = false;
+		public $cloudflare_tier = 'basic';
 
 		/**
 		 * Brands supporting cloudflare (from mm_brand option).
@@ -161,9 +161,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
-			$cloudflare_state = get_option( 'endurance_cloudflare_enabled', false );
+			$cloudflare_state  = get_option( 'endurance_cloudflare_enabled', false );
 			$this->cloudflare_enabled = (bool) $cloudflare_state;
-			$this->cloudflare_tier = ('premium' === $cloudflare_state ) ? 'premium' : 'basic';
+			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -642,7 +642,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
-			if (true === $this->cloudflare_enabled) {
+			if ( true === $this->cloudflare_enabled ) {
 				return;
 			}
 
@@ -1449,7 +1449,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
-			$throttle_key = md5( json_encode( $resources ) );
+			$throttle_key = md5( wp_json_encode( $resources ) );
 
 			if ( ! $this->force_purge && true === $this->should_throttle( $throttle_key, __METHOD__ ) ) {
 				return;
