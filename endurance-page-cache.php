@@ -1445,6 +1445,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			if ( $this->use_file_cache()
 				|| ! in_array( $brand, $this->cloudflare_support, true )
+				|| false === $this->cloudflare_enabled
 			) {
 				return;
 			}
