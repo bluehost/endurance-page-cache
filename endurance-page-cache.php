@@ -58,11 +58,25 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $cache_level = 2;
 
 		/**
+		 * Cloudflare enabled
+		 *
+		 * @var bool
+		 */
+		public $cloudflare_enabled = false;
+
+		/**
+		 * Cloudflare tier
+		 *
+		 * @var string
+		 */
+		public $cloudflare_tier = 'basic';
+
+		/**
 		 * Brands supporting cloudflare (from mm_brand option).
 		 *
 		 * @var array
 		 */
-		public $cloudflare_support = array( 'BlueHost', 'HostMonster', 'Just_Host' );
+		public $cloudflare_support = array( 'BlueHost' );
 
 		/**
 		 * Whether or not to force a purge.
@@ -146,6 +160,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
+
+			$cloudflare_state  = get_option( 'endurance_cloudflare_enabled', false );
+			$this->cloudflare_enabled = (bool) $cloudflare_state;
+			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -616,11 +634,15 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
-		 * Make a request to purge the entire CDN
+		 * Make a request to purge the entire Sitelock CDN
 		 */
 		public function purge_cdn() {
 
-			if ( ! $this->force_purge && true === $this->should_throttle( 'cdn', __METHOD__ ) ) {
+			if ( ! $this->force_purge && true === $this->should_throttle( 'sitelock_cdn', __METHOD__ ) ) {
+				return;
+			}
+
+			if ( true === $this->cloudflare_enabled ) {
 				return;
 			}
 
@@ -1009,9 +1031,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_rewrites( $rules ) {
-			if ( false === is_numeric( $this->cache_level ) || $this->cache_level > 3 ) {
+			if ( false === is_numeric( $this->cache_level ) ) {
 				$this->cache_level = 2;
 			}
+
+			if ( $this->cache_level > 3 ) {
+				$this->cache_level = 3;
+			}
+
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
@@ -1333,9 +1360,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				if ( ! is_dir( $path . '.cpanel/proxy_conf' ) ) {
 					mkdir( $path . '.cpanel/proxy_conf' );
 				}
-				$cf_enabled = (bool) get_option( 'endurance_cloudflare_enabled', false );
 
-				if ( true === $cf_enabled ) {
+				if ( true === $this->cloudflare_enabled ) {
 					$new_value = '-1';
 				}
 				@file_put_contents( $path . '.cpanel/proxy_conf/' . $domain, 'cache_level=' . $new_value ); // phpcs:ignore WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors
@@ -1423,6 +1449,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
+			$throttle_key = md5( wp_json_encode( $resources ) );
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $throttle_key, __METHOD__ ) ) {
+				return;
+			}
+
 			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
 			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
 
@@ -1478,14 +1510,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Note that $this->purge_all() presets an empty array, which denotes a full domain purge.
 		 *
 		 * @param string $uri URI to add to udev purge buffer
-		 * @return true|void
+		 * @return void
 		 */
 		protected function udev_cache_populate_buffer( $uri ) {
-			if ( is_array( $this->udev_purge_buffer ) && empty( $this->udev_purge_buffer ) ) {
-				return true; // purge all
-			} elseif ( is_array( $this->udev_purge_buffer ) ) {
+			if ( is_array( $this->udev_purge_buffer ) && ! empty( $this->udev_purge_buffer ) ) {
 				$this->udev_purge_buffer[] = wp_parse_url( $uri, PHP_URL_PATH );
-			} else {
+			} elseif ( false === $this->udev_purge_buffer ) {
 				$this->udev_purge_buffer = array( wp_parse_url( $uri, PHP_URL_PATH ) );
 			}
 		}
