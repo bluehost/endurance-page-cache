@@ -71,7 +71,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public $cloudflare_tier = 'basic';
 
-
 		/**
 		 * Brands supporting cloudflare (from mm_brand option).
 		 *
