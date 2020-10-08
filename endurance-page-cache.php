@@ -172,7 +172,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_enabled = (bool) $cloudflare_state;
 			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
-
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
 			$this->hooks();
