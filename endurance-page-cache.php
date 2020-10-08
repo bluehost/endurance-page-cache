@@ -1449,6 +1449,12 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return;
 			}
 
+			$throttle_key = md5( json_encode( $resources ) );
+
+			if ( ! $this->force_purge && true === $this->should_throttle( $throttle_key, __METHOD__ ) ) {
+				return;
+			}
+
 			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
 			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
 
