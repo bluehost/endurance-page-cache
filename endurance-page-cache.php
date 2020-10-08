@@ -1038,6 +1038,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( $this->cache_level > 3 ) {
 				$this->cache_level = 3;
 			}
+
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
