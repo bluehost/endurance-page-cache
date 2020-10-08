@@ -1513,7 +1513,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return void
 		 */
 		protected function udev_cache_populate_buffer( $uri ) {
-			if ( is_array( $this->udev_purge_buffer ) ) {
+			if ( is_array( $this->udev_purge_buffer ) && ! empty( $this->udev_purge_buffer ) ) {
 				$this->udev_purge_buffer[] = wp_parse_url( $uri, PHP_URL_PATH );
 			} elseif ( false === $this->udev_purge_buffer ) {
 				$this->udev_purge_buffer = array( wp_parse_url( $uri, PHP_URL_PATH ) );
