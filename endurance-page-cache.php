@@ -100,6 +100,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $should_update_throttled_items = false;
 
 		/**
+		 * Record keeping for which triggers have fired
+		 *
+		 * @var array
+		 */
+		public $triggers = array();
+
+		/**
 		 * UDEV Purge Buffer
 		 *
 		 * This parameter determines whether to hit the UDEV Cache Purge API.
@@ -162,6 +169,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
 			$cloudflare_state  = get_option( 'endurance_cloudflare_enabled', false );
+
 			$this->cloudflare_enabled = (bool) $cloudflare_state;
 			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
 
@@ -475,7 +483,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			$this->purge_trigger = 'option_update_' . $option;
+			$this->add_trigger( 'option_update_' . $option );
 			$this->purge_all();
 
 			return true;
@@ -777,7 +785,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$domain = wp_parse_url( home_url(), PHP_URL_HOST );
 
-			$trigger = ( isset( $this->purge_trigger ) && ! is_null( $this->purge_trigger ) ) ? $this->purge_trigger : current_action();
+			if ( empty( $this->triggers ) ) {
+				$this->add_trigger( current_action() );
+			}
 
 			$args = array(
 				'method'     => 'PURGE',
@@ -787,7 +797,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'headers'    => array(
 					'host' => $domain,
 				),
-				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() . '; EPC/v' . EPC_VERSION . '/' . $trigger,
+				'user-agent' => 'WordPress/' . $wp_version . '; ' . home_url() . '; EPC/v' . EPC_VERSION . '/' . $this->get_trigger(),
 			);
 			wp_remote_request( $this->get_purge_request_url( $uri, 'http' ), $args );
 			wp_remote_request( $this->get_purge_request_url( $uri, 'https' ), $args );
@@ -1193,10 +1203,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( ( isset( $_GET['epc_purge_all'] ) || isset( $_GET['epc_purge_single'] ) ) && is_user_logged_in() && current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$this->force_purge = true;
 				if ( isset( $_GET['epc_purge_all'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-					$this->purge_trigger = 'toolbar_manual_all';
+					$this->add_trigger( 'toolbar_manual_all' );
 					$this->purge_all();
 				} else {
-					$this->purge_trigger = 'toolbar_manual_single';
+					$this->add_trigger( 'toolbar_manual_single' );
 					$this->purge_single( $this->get_current_single_purge_url() );
 				}
 				header( 'Location: ' . remove_query_arg( array( 'epc_purge_single', 'epc_purge_all' ) ) );
@@ -1429,6 +1439,41 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Add trigger for record keeping.
+		 *
+		 * @param string $trigger Typically an action but can be manually set in the event of a force purge.
+		 *
+		 * @return void
+		 */
+		protected function add_trigger( $trigger ) {
+			$this->triggers[] = $trigger;
+		}
+
+		/**
+		 * Retrieves the most recent trigger
+		 *
+		 * @return string of the most recent trigger from the collection
+		 */
+		protected function get_trigger() {
+			return end( $this->triggers );
+		}
+
+		/**
+		 * Retrieves all the triggers to send with bundled requests
+		 *
+		 * @param string $include_duplicates Determines if the array should be unique
+		 *
+		 * @return array
+		 */
+		protected function get_triggers( $include_duplicates = false ) {
+			if ( ! $include_duplicates ) {
+				return array_values( array_unique( $this->triggers ) );
+			} else {
+				return $this->triggers;
+			}
+		}
+
+		/**
 		 * Primary function for the UDEV Purge Cache API. Makes non-blocking request for current install cache purges.
 		 *
 		 * Calling this method with *no* parameters triggers a full cache wipe for the domain.
@@ -1445,6 +1490,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			if ( $this->use_file_cache()
 				|| ! in_array( $brand, $this->cloudflare_support, true )
+				|| false === $this->cloudflare_enabled
 			) {
 				return;
 			}
@@ -1501,6 +1547,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( ! empty( $resources ) ) {
 				$request['assets'] = array_values( array_unique( array_filter( $resources ) ) );
 			}
+
+			$request['triggers'] = $this->triggers;
 
 			return wp_json_encode( $request );
 		}
