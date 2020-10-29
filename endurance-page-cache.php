@@ -149,7 +149,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		protected static $udev_api_services = array(
+		public $udev_api_services = array(
 			'cf'  => 1,
 			'epc' => 0,
 		);
@@ -168,10 +168,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cache_level = get_option( 'endurance_cache_level', 2 );
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
-			$cloudflare_state  = get_option( 'endurance_cloudflare_enabled', false );
+			$cloudflare_state = get_option( 'endurance_cloudflare_enabled', false );
 
-			$this->cloudflare_enabled = (bool) $cloudflare_state;
-			$this->cloudflare_tier    = ( 'premium' === $cloudflare_state ) ? 'premium' : 'basic';
+			$this->cloudflare_enabled      = (bool) $cloudflare_state;
+			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
+			$this->udev_api_services['cf'] = $this->cloudflare_tier;
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -1503,6 +1504,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
 			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
+
+			if ( $services['cf'] && $this->cloudflare_enabled ) {
+				$services['cf'] = $this->cloudflare_enabled;
+			}
 
 			wp_remote_post(
 				$this->udev_cache_api_uri( $services ),
