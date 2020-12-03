@@ -1503,7 +1503,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
-			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
+			$services = ! empty( $override_services ) ? $override_services : $this->udev_api_services;
 
 			if ( $services['cf'] && $this->cloudflare_enabled ) {
 				$services['cf'] = $this->cloudflare_enabled;
