@@ -72,13 +72,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $cloudflare_tier = 'basic';
 
 		/**
-		 * Brands supporting cloudflare (from mm_brand option).
-		 *
-		 * @var array
-		 */
-		public $cloudflare_support = array( 'BlueHost' );
-
-		/**
 		 * Whether or not to force a purge.
 		 *
 		 * @var bool
@@ -1487,10 +1480,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
 			global $wp_version;
 
-			$brand = get_option( 'mm_brand' );
-
 			if ( $this->use_file_cache()
-				|| ! in_array( $brand, $this->cloudflare_support, true )
 				|| false === $this->cloudflare_enabled
 			) {
 				return;
