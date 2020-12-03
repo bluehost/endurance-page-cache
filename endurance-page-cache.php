@@ -1506,7 +1506,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$services = ! empty( $override_services ) ? $override_services : $this->udev_api_services;
 
 			if ( $services['cf'] && $this->cloudflare_enabled ) {
-				$services['cf'] = $this->cloudflare_enabled;
+				$services['cf'] = $this->cloudflare_tier;
 			}
 
 			wp_remote_post(
