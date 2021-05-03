@@ -23,6 +23,6 @@
   },
   "homepage": "https://github.com/bluehost/endurance-page-cache#readme",
   "devDependencies": {
-    "@wordpress/env": "^1.6.0"
+    "@wordpress/env": "^4.0.3"
   }
 }
