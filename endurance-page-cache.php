@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.0.5
+ * Version: 2.0.7
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.0.5' );
+define( 'EPC_VERSION', '2.0.7' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -70,13 +70,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @var string
 		 */
 		public $cloudflare_tier = 'basic';
-
-		/**
-		 * Brands supporting cloudflare (from mm_brand option).
-		 *
-		 * @var array
-		 */
-		public $cloudflare_support = array( 'BlueHost' );
 
 		/**
 		 * Whether or not to force a purge.
@@ -1392,7 +1385,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$muplugins_details = get_transient( 'mojo_plugin_assets' );
 
 			if ( ! $muplugins_details ) {
-				$muplugins_details = wp_remote_get( 'https://api.mojomarketplace.com/mojo-plugin-assets/json/mu-plugins.json' );
+				$muplugins_details = wp_remote_get( 'https://cdn.hiive.space/bluehost/mu-plugins.json' );
 				if ( ! is_wp_error( $muplugins_details ) ) {
 					set_transient( 'mojo_plugin_assets', $muplugins_details, 6 * HOUR_IN_SECONDS );
 				}
@@ -1487,10 +1480,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
 			global $wp_version;
 
-			$brand = get_option( 'mm_brand' );
-
 			if ( $this->use_file_cache()
-				|| ! in_array( $brand, $this->cloudflare_support, true )
 				|| false === $this->cloudflare_enabled
 			) {
 				return;
@@ -1503,10 +1493,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			$hosts    = array( wp_parse_url( home_url(), PHP_URL_HOST ) );
-			$services = ! empty( $override_services ) ? $override_services : self::$udev_api_services;
+			$services = ! empty( $override_services ) ? $override_services : $this->udev_api_services;
 
 			if ( $services['cf'] && $this->cloudflare_enabled ) {
-				$services['cf'] = $this->cloudflare_enabled;
+				$services['cf'] = $this->cloudflare_tier;
 			}
 
 			wp_remote_post(
