@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.0.7
+ * Version: 2.0.8
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.0.7' );
+define( 'EPC_VERSION', '2.0.8' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -609,7 +609,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function write( $page ) {
 			$base = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 
-			if ( false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
+			if ( ! empty( $page ) ) {
 				$path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
 				$path = str_replace( '/endurance-page-cache' . $base, '/endurance-page-cache/', $path );
 				$path = str_replace( '//', '/', $path );
