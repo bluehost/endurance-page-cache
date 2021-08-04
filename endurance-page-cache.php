@@ -609,7 +609,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function write( $page ) {
 			$base = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 
-			if ( false === strpos( $page, 'nonce' ) && ! empty( $page ) ) {
+			if ( ! empty( $page ) ) {
 				$path = WP_CONTENT_DIR . '/endurance-page-cache' . str_replace( get_option( 'home' ), '', esc_url( $_SERVER['REQUEST_URI'] ) );
 				$path = str_replace( '/endurance-page-cache' . $base, '/endurance-page-cache/', $path );
 				$path = str_replace( '//', '/', $path );
