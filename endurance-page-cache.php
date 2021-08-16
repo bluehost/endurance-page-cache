@@ -72,6 +72,13 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public $cloudflare_tier = 'basic';
 
 		/**
+		 * File Based enabled
+		 *
+		 * @var bool
+		 */
+		public $file_based_enabled = false;
+
+		/**
 		 * Whether or not to force a purge.
 		 *
 		 * @var bool
@@ -143,8 +150,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @var array
 		 */
 		public $udev_api_services = array(
-			'cf'  => 1,
-			'epc' => 0,
+			'cf'   => 1,
+			'epc'  => 0,
 		);
 
 		/**
@@ -166,6 +173,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_enabled      = (bool) $cloudflare_state;
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
+			$this->file_based_enabled = get_option( 'endurance_file_enabled', false === strpos( dirname( __FILE__ ), 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -359,7 +367,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return bool True if uses file system to cache
 		 */
 		public function use_file_cache() {
-			return false === strpos( dirname( __FILE__ ), 'public_html' );
+			return $this->file_based_enabled;
 		}
 
 		/**
@@ -1081,7 +1089,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				'text/css'        => '1 month',
 				'application/pdf' => '1 month',
 				'text/javascript' => '1 month',
-				'text/html'       => '5 minutes',
+				'text/html'       => '2 hours',
 			);
 
 			$file_types = wp_parse_args( get_option( 'epc_filetype_expirations', array() ), $default_files );
@@ -1288,7 +1296,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'text/css'        => '1 week',
 						'application/pdf' => '1 week',
 						'text/javascript' => '1 month',
-						'text/html'       => '4 hours',
+						'text/html'       => '8 hours',
 						'default'         => '1 week',
 					);
 					break;
@@ -1302,7 +1310,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 						'text/css'        => '24 hours',
 						'application/pdf' => '1 week',
 						'text/javascript' => '24 hours',
-						'text/html'       => '5 minutes',
+						'text/html'       => '2 hours',
 						'default'         => '24 hours',
 					);
 					break;
