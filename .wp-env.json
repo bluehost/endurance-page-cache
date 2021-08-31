@@ -2,7 +2,6 @@
 	"mappings": {
 		"wp-content/mu-plugins": "."
 	},
-	"phpVersion": "7.4",
 	"port": 8870,
 	"testsPort": 8871
 }
