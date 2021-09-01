@@ -40,6 +40,9 @@
   "scripts": {
     "lint": [
       "vendor/bin/phpcs endurance-page-cache.php --standard=Bluehost"
+    ],
+    "fix": [
+      "vendor/bin/phpcbf endurance-page-cache.php --standard=Bluehost"
     ]
   }
 }
