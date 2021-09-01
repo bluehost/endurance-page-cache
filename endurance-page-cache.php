@@ -1054,7 +1054,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
-			$additions = "<ifModule mod_headers.c>\n" . 'Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n</ifModule>\n";
+			$additions = "\n
+				<ifModule mod_headers.c>\n" . '
+					Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n".'
+					Header set X-nginx-cache "WordPress"' . "\n
+				</ifModule>\n";
 
 			if ( $this->use_file_cache() ) {
 				$additions .= 'Options -Indexes ' . "\n" . '
