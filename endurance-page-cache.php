@@ -150,8 +150,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @var array
 		 */
 		public $udev_api_services = array(
-			'cf'   => 1,
-			'epc'  => 0,
+			'cf'  => 1,
+			'epc' => 0,
 		);
 
 		/**
@@ -173,7 +173,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_enabled      = (bool) $cloudflare_state;
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
-			$this->file_based_enabled = (boolean) get_option( 'endurance_file_enabled', false === strpos( dirname( __FILE__ ), 'public_html' ) );
+			$this->file_based_enabled      = (bool) get_option( 'endurance_file_enabled', false === strpos( dirname( __FILE__ ), 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -1056,7 +1056,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$cache_url = str_replace( '//', '/', $cache_url );
 			$additions = "\n
 				<ifModule mod_headers.c>\n" . '
-					Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n".'
+					Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n" . '
 					Header set X-nginx-cache "WordPress"' . "\n
 				</ifModule>\n";
 
