@@ -1017,9 +1017,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Start output buffering for cachable requests.
 		 */
 		public function start() {
-			if ( $this->is_cachable() ) {
+			if ( $this->is_cachable() && $this->file_based_enabled ) {
 				ob_start( array( $this, 'write' ) );
-			} else {
+			} else if ( $this->is_cachable() === false ) {
 				nocache_headers();
 			}
 		}
@@ -1028,10 +1028,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * End output buffering for cachable requests.
 		 */
 		public function finish() {
-			if ( $this->is_cachable() ) {
-				if ( ob_get_contents() ) {
-					ob_end_clean();
-				}
+			if ( $this->is_cachable() && $this->file_based_enabled && ob_get_contents() ) {
+				ob_end_clean();
 			}
 		}
 
