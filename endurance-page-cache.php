@@ -987,7 +987,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$return = false;
 			} elseif ( is_admin() ) {
 				$return = false;
-			} elseif ( false === get_option( 'permalink_structure' ) ) {
+			} elseif ( $this->file_based_enabled && false === get_option( 'permalink_structure' ) ) {
 				$return = false;
 			} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
 				$return = false;
