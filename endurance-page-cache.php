@@ -48,7 +48,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		public $cache_exempt = array( '@', '%', '&', '=', ':', ';', '.', 'checkout', 'cart', 'wp-admin' );
+		public $cache_exempt = array( '@', '%', ':', ';', '.', 'checkout', 'cart', 'wp-admin' );
 
 		/**
 		 * Cache level.
