@@ -48,7 +48,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		public $cache_exempt = array( '@', '%', ':', ';', '.', 'checkout', 'cart', 'wp-admin' );
+		public $cache_exempt = array( '@', '%', ':', ';', 'checkout', 'cart', 'wp-admin' );
 
 		/**
 		 * Cache level.
@@ -972,31 +972,52 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @return bool
 		 */
-		public function is_cachable() {
+		public function is_cachable($type = 'default') {
 			global $wp_query;
 
 			$return = true;
 
-			if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
-				$return = false;
-			} elseif ( defined( 'DOING_AJAX' ) ) {
-				$return = false;
-			} elseif ( 'private' === get_post_status() ) {
-				$return = false;
-			} elseif ( isset( $wp_query ) && is_404() ) {
-				$return = false;
-			} elseif ( is_admin() ) {
-				$return = false;
-			} elseif ( $this->file_based_enabled && false === get_option( 'permalink_structure' ) ) {
-				$return = false;
-			} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
-				$return = false;
-			} elseif ( $this->file_based_enabled && isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-				$return = false;
-			} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-				$return = false;
-			} elseif ( isset( $wp_query ) && is_feed() ) {
-				$return = false;
+			if ( 'file' === $type ) {
+				if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
+					$return = false;
+				} elseif ( defined( 'DOING_AJAX' ) ) {
+					$return = false;
+				} elseif ( 'private' === get_post_status() ) {
+					$return = false;
+				} elseif ( isset( $wp_query ) && is_404() ) {
+					$return = false;
+				} elseif ( is_admin() ) {
+					$return = false;
+				} elseif ( false === get_option( 'permalink_structure' ) ) {
+					$return = false;
+				} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
+					$return = false;
+				} elseif ( isset( $_GET ) && ! empty( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					$return = false;
+				} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					$return = false;
+				} elseif ( isset( $wp_query ) && is_feed() ) {
+					$return = false;
+				}
+				$this->cache_exempt = array_merge( $this->cache_exempt, ['&', '=', '.'] );
+			} else {
+				if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
+					$return = false;
+				} elseif ( defined( 'DOING_AJAX' ) ) {
+					$return = false;
+				} elseif ( 'private' === get_post_status() ) {
+					$return = false;
+				} elseif ( isset( $wp_query ) && is_404() ) {
+					$return = false;
+				} elseif ( is_admin() ) {
+					$return = false;
+				} elseif ( function_exists( 'is_user_logged_in' ) && is_user_logged_in() ) {
+					$return = false;
+				} elseif ( isset( $_POST ) && ! empty( $_POST ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+					$return = false;
+				} elseif ( isset( $wp_query ) && is_feed() ) {
+					$return = false;
+				}
 			}
 
 			if ( empty( $_SERVER['REQUEST_URI'] ) ) {
@@ -1017,7 +1038,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Start output buffering for cachable requests.
 		 */
 		public function start() {
-			if ( $this->is_cachable() && $this->file_based_enabled ) {
+			if ( $this->is_cachable( 'file' ) && $this->file_based_enabled ) {
 				ob_start( array( $this, 'write' ) );
 			} else if ( $this->is_cachable() === false ) {
 				nocache_headers();
@@ -1028,7 +1049,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * End output buffering for cachable requests.
 		 */
 		public function finish() {
-			if ( $this->is_cachable() && $this->file_based_enabled && ob_get_contents() ) {
+			if ( $this->is_cachable( 'file' ) && $this->file_based_enabled && ob_get_contents() ) {
 				ob_end_clean();
 			}
 		}
