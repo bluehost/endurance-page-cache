@@ -48,7 +48,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @var array
 		 */
-		public $cache_exempt = array( '@', '%', ':', ';', 'checkout', 'cart', 'wp-admin' );
+		public $cache_exempt = array( 'checkout', 'cart', 'wp-admin' );
 
 		/**
 		 * Cache level.
@@ -999,7 +999,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				} elseif ( isset( $wp_query ) && is_feed() ) {
 					$return = false;
 				}
-				$this->cache_exempt = array_merge( $this->cache_exempt, ['&', '=', '.'] );
+				$this->cache_exempt = array_merge( $this->cache_exempt, array( '@', '%', ':', ';','&', '=', '.', '%' ) );
 			} else {
 				if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 					$return = false;
@@ -1038,7 +1038,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Start output buffering for cachable requests.
 		 */
 		public function start() {
-			if ( $this->is_cachable( 'file' ) && $this->file_based_enabled ) {
+			if ( $this->file_based_enabled && $this->is_cachable( 'file' ) ) {
 				ob_start( array( $this, 'write' ) );
 			} else if ( $this->is_cachable() === false ) {
 				nocache_headers();
