@@ -999,7 +999,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				} elseif ( isset( $wp_query ) && is_feed() ) {
 					$return = false;
 				}
-				$cache_exempt = array_merge( $this->cache_exempt, array( '@', '%', ':', ';', '&', '=', '.', '%' ) );
+				$cache_exempt = array_merge( $this->cache_exempt, array( '@', '%', ':', ';', '&', '=', '.' ) );
 			} else {
 				if ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE === true ) {
 					$return = false;
