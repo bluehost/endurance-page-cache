@@ -10,7 +10,7 @@ Endurance Page Cache adds basic file-based caching to WordPress, as well as more
 
 ## Tagging a new release
 
-- Bump the version number in the header of the `endurance-page-cache.php` file.
+- Bump the version number in the header of the `endurance-page-cache.php` file (also the `EPC_VERSION`) and in `package.json`.
 - Push all changes to `master`.
 - Merge all changes to `production`.
 - Create a release on GitHub for the new version.
