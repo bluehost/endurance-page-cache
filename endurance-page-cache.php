@@ -214,6 +214,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 
+			add_action( 'update_option_endurance_file_enabled', array( $this, 'update_htaccess' ) );
+			add_action( 'update_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
+			add_action( 'delete_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
+
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'transition_post_status', array( $this, 'save_post' ), 10, 3 );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
@@ -1058,6 +1062,17 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		}
 
 		/**
+		 * Update .htaccess to reflect updates.
+		 */
+		public function update_htaccess() {
+			if ( ! function_exists( 'save_mod_rewrite_rules' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/misc.php';
+			}
+
+			save_mod_rewrite_rules();
+		}
+
+		/**
 		 * Modify the .htaccess file with custom rewrite rules based on caching level.
 		 *
 		 * @param string $rules .htaccess content
@@ -1370,10 +1385,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
-			if ( ! function_exists( 'save_mod_rewrite_rules' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/misc.php';
-			}
-			save_mod_rewrite_rules();
 		}
 
 		/**
