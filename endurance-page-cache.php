@@ -1368,6 +1368,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
+			if ( ! function_exists( 'save_mod_rewrite_rules' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/misc.php';
+			}
 			save_mod_rewrite_rules();
 		}
 
