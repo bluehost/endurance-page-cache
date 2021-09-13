@@ -970,6 +970,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Check if current request is cachable.
 		 *
+		 * @param string $type Cache type
+		 *
 		 * @return bool
 		 */
 		public function is_cachable( $type = 'default' ) {
@@ -1041,7 +1043,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		public function start() {
 			if ( $this->file_based_enabled && $this->is_cachable( 'file' ) ) {
 				ob_start( array( $this, 'write' ) );
-			} else if ( $this->is_cachable() === false ) {
+			} elseif ( $this->is_cachable() === false ) {
 				nocache_headers();
 			}
 		}
@@ -1516,9 +1518,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		protected function udev_cache_purge( $resources = array(), $override_services = array() ) {
 			global $wp_version;
 
-			if ( $this->use_file_cache()
-			     || false === $this->cloudflare_enabled
-			) {
+			if ( $this->use_file_cache() || false === $this->cloudflare_enabled ) {
 				return;
 			}
 
@@ -1559,11 +1559,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string URI to use for the udev cache API
 		 */
 		protected function udev_cache_api_uri( $services ) {
-			return trailingslashit( static::$udev_api_root )
-			       . trailingslashit( static::$udev_api_version )
-			       . static::$udev_api_endpoint
-			       . '?'
-			       . http_build_query( $services );
+			return trailingslashit( static::$udev_api_root ) . trailingslashit( static::$udev_api_version ) . static::$udev_api_endpoint . '?' . http_build_query( $services );
 		}
 
 		/**
