@@ -173,7 +173,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_enabled      = (bool) $cloudflare_state;
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
-			$this->file_based_enabled      = (bool) get_option( 'endurance_file_enabled', false === strpos( dirname( __FILE__ ), 'public_html' ) );
+
+			$path = defined('ABSPATH') ? ABSPATH : dirname( __FILE__ );
+			$this->file_based_enabled      = (bool) get_option( 'endurance_file_enabled', false === strpos( $path, 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
