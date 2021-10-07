@@ -1,6 +1,6 @@
 {
   "name": "endurance-page-cache",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.",
   "directories": {
     "test": "tests"
