@@ -165,7 +165,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$this->throttled = array_filter( (array) get_transient( 'epc_throttled' ) );
 
-			$this->cache_level = get_option( 'endurance_cache_level', 2 );
+			$this->cache_level = $this->get_cache_level();
 			$this->cache_dir   = WP_CONTENT_DIR . '/endurance-page-cache';
 
 			$cloudflare_state = get_option( 'endurance_cloudflare_enabled', false );
@@ -174,8 +174,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
 
-			$path                          = defined( 'ABSPATH' ) ? ABSPATH : dirname( __FILE__ );
-			$this->file_based_enabled      = (bool) get_option( 'endurance_file_enabled', false === strpos( $path, 'public_html' ) );
+			$path                     = defined( 'ABSPATH' ) ? ABSPATH : dirname( __FILE__ );
+			$this->file_based_enabled = (bool) get_option( 'endurance_file_enabled', false === strpos( $path, 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
 
@@ -208,15 +208,14 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'init', array( $this, 'start' ) );
 				add_action( 'shutdown', array( $this, 'finish' ) );
 				add_action( 'shutdown', array( $this, 'shutdown' ) );
-
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
 				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
 			}
-			if ( $this->is_enabled( 'browser' ) ) {
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
-			}
+			add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
+			add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 
+			add_action( 'update_option_endurance_cache_level', array( $this, 'update_htaccess' ) );
 			add_action( 'update_option_endurance_file_enabled', array( $this, 'update_htaccess' ) );
+			add_action( 'update_option_epc_skip_404_handling', array( $this, 'update_htaccess' ) );
 			add_action( 'update_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
 			add_action( 'delete_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
 
@@ -309,7 +308,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				$section_name,
 				array( 'field' => 'endurance_cache_level' )
 			);
+			add_settings_field(
+				'epc_skip_404_handling',
+				'Skip WordPress 404 Handling For Static Files',
+				function () {
+					echo '<input type="checkbox" name="epc_skip_404_handling" value="1"' . checked( (bool) get_option( 'epc_skip_404_handling' ), true, false ) . ' />';
+				},
+				'general',
+				$section_name,
+				array( 'field' => 'epc_skip_404_handling' )
+			);
 			register_setting( 'general', 'endurance_cache_level' );
+			register_setting( 'general', 'epc_skip_404_handling' );
 		}
 
 		/**
@@ -373,7 +383,18 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return bool True if uses file system to cache
 		 */
 		public function use_file_cache() {
-			return $this->file_based_enabled;
+			return $this->file_based_enabled && $this->cache_level;
+		}
+
+		/**
+		 * Whether or not to skip 404 handling for static files.
+		 *
+		 * Enable via WP-CLI: wp option set epc_skip_404_handling 1
+		 *
+		 * @return bool
+		 */
+		public function skip_404_handling() {
+			return (bool) get_option( 'epc_skip_404_handling' );
 		}
 
 		/**
@@ -1082,35 +1103,49 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_rewrites( $rules ) {
-			if ( false === is_numeric( $this->cache_level ) ) {
-				$this->cache_level = 2;
-			}
-
-			if ( $this->cache_level > 3 ) {
-				$this->cache_level = 3;
-			}
-
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
-			$additions = "\n
-				<ifModule mod_headers.c>\n" . '
-					Header set X-Endurance-Cache-Level "' . $this->cache_level . '"' . "\n" . '
-					Header set X-nginx-cache "WordPress"' . "\n
-				</ifModule>\n";
+
+			$additions = 'Options -Indexes' . PHP_EOL;
+
+			$additions .= <<<HTACCESS
+<IfModule mod_headers.c>
+	Header set X-Endurance-Cache-Level "{$this->cache_level}"
+	Header set X-nginx-cache "WordPress"
+</IfModule>
+HTACCESS;
+
+			$additions .= PHP_EOL;
 
 			if ( $this->use_file_cache() ) {
-				$additions .= 'Options -Indexes ' . "\n" . '
-				<IfModule mod_rewrite.c>
-					RewriteEngine On
-					RewriteBase ' . $base . '
-					RewriteRule ^' . $cache_url . '/ - [L]
-					RewriteCond %{REQUEST_METHOD} !POST
-					RewriteCond %{QUERY_STRING} !.*=.*
-					RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
-					RewriteCond %{DOCUMENT_ROOT}' . $cache_url . '/$1/_index.html -f
-					RewriteRule ^(.*)$ ' . $cache_url . '/$1/_index.html [L]
-				</IfModule>' . "\n";
+				$additions .= <<<HTACCESS
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase {$base}
+	RewriteRule ^{$cache_url}/ - [L]
+	RewriteCond %{REQUEST_METHOD} !POST
+	RewriteCond %{QUERY_STRING} !.*=.*
+	RewriteCond %{HTTP_COOKIE} !(wordpress_test_cookie|comment_author|wp\-postpass|wordpress_logged_in|wptouch_switch_toggle|wp_woocommerce_session_) [NC]
+	RewriteCond %{DOCUMENT_ROOT}{$cache_url}/$1/_index.html -f
+	RewriteRule ^(.*)\$ {$cache_url}/$1/_index.html [L]
+</IfModule>
+HTACCESS;
+				$additions .= PHP_EOL;
+			}
+
+			if ( $this->skip_404_handling() ) {
+				$additions .= <<<HTACCESS
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteCond %{REQUEST_URI} !(robots\.txt|[a-z0-9_\-]*sitemap[a-z0-9_\.\-]*\.(xml|xsl|html)(\.gz)?)
+	RewriteCond %{REQUEST_URI} \.(css|htc|less|js|js2|js3|js4|html|htm|rtf|rtx|txt|xsd|xsl|xml|asf|asx|wax|wmv|wmx|avi|avif|avifs|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|webp|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|webm|mpp|otf|_otf|odb|odc|odf|odg|odp|ods|odt|ogg|ogv|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|_ttf|wav|wma|wri|woff|woff2|xla|xls|xlsx|xlt|xlw|zip)$ [NC]
+	RewriteRule .* - [L]
+</IfModule>
+HTACCESS;
+				$additions .= PHP_EOL;
 			}
 
 			return $additions . $rules;
@@ -1124,6 +1159,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_expirations( $rules ) {
+
+			if ( ! $this->is_enabled( 'browser' ) || $this->cache_level < 1 ) {
+				return $rules;
+			}
+
 			$default_files = array(
 				'image/jpg'       => '1 year',
 				'image/jpeg'      => '1 year',
@@ -1158,7 +1198,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Check if a specific caching type is enabled.
 		 *
-		 * @param string $type Caching type.
+		 * @param string $type Caching type (e.g. page or browser).
 		 *
 		 * @return bool
 		 */
@@ -1327,7 +1367,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param int $level Cache level
 		 */
 		public function update_level_expirations( $level ) {
-			$level                = (int) $level;
+			$level = (int) $level;
+
 			$original_expirations = get_option( 'epc_filetype_expirations', array() );
 			switch ( $level ) {
 				case 3:
@@ -1380,12 +1421,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			if ( 0 === $level ) {
 				delete_option( 'epc_filetype_expirations' );
-				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
-				remove_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			} else {
 				update_option( 'epc_filetype_expirations', $expirations );
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
-				add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 			}
 		}
 
