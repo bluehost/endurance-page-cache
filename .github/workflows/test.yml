@@ -52,11 +52,11 @@ jobs:
           node-version: 16.x
 
       - name: Log debug information
-          run: |
-            php --version
-            composer --version
-            node --version
-            npm --version
+        run: |
+          php --version
+          composer --version
+          node --version
+          npm --version
 
       - name: Validate composer.json and composer.lock files
         run: composer validate
