@@ -47,5 +47,8 @@
     "fix": [
       "vendor/bin/phpcbf endurance-page-cache.php --standard=Bluehost"
     ]
+  },
+  "require": {
+    "yoast/phpunit-polyfills": "^1.0"
   }
 }

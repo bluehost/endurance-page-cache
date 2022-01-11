@@ -1,7 +1,12 @@
 {
-	"mappings": {
-		"wp-content/mu-plugins": "."
-	},
-	"port": 8870,
-	"testsPort": 8871
+  "config": {
+    "WP_DEBUG": true,
+    "WP_DEBUG_LOG": true,
+    "WP_DEBUG_DISPLAY": true
+  },
+  "plugins": [
+    "."
+  ],
+  "port": 8870,
+  "testsPort": 8871
 }

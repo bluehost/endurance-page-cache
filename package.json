@@ -9,7 +9,7 @@
     "prelint": "npm run wp-env run composer install -- --no-interaction",
     "lint": "npm run wp-env run composer run-script lint",
     "test": "npm run test-unit",
-    "test-unit": "npm run wp-env run phpunit 'phpunit -c /var/www/html/wp-content/mu-plugins/phpunit.xml --verbose'",
+    "test-unit": "npm run wp-env run phpunit 'phpunit -c /var/www/html/wp-content/plugins/endurance-page-cache/phpunit.xml --verbose'",
     "wp-env": "wp-env"
   },
   "repository": {
