@@ -30,6 +30,9 @@
   "config": {
     "platform": {
       "php": "7.4.18"
+    },
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "require-dev": {
@@ -44,5 +47,8 @@
     "fix": [
       "vendor/bin/phpcbf endurance-page-cache.php --standard=Bluehost"
     ]
+  },
+  "require": {
+    "yoast/phpunit-polyfills": "^1.0"
   }
 }

@@ -1,5 +1,7 @@
 <?php
 
+require dirname( __DIR__ ) . '/endurance-page-cache.php';
+
 // Load up Composer dependencies
 require dirname( __DIR__ ) . '/vendor/autoload.php';
 
