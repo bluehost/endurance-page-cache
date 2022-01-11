@@ -8,9 +8,24 @@
 
 Endurance Page Cache adds basic file-based caching to WordPress, as well as more advanced caching solutions in nginx and Cloudflare. EPC is designed to run best on Endurance systems and your mileage may vary.
 
+## Installation
+
+- Run `git clone git@github.com:bluehost/endurance-page-cache.git` to pull down the code.
+- Run `composer install` to install PHP dev dependencies.
+- Run `npm install` to install JS dev dependencies.
+
+## Running linting
+
+- Run `composer run lint`
+
+## Running tests
+
+- Run `npm run wp-env start` to boot the WordPress environment
+- Run `npm run test` to run the tests
+
 ## Tagging a new release
 
-- Bump the version number in the header of the `endurance-page-cache.php` file (also the `EPC_VERSION`) and in `package.json`.
+- Bump the version number in the header of the `endurance-page-cache.php` file (also the `EPC_VERSION` constant).
 - Push all changes to `master`.
 - Merge all changes to `production`.
 - Create a release on GitHub for the new version.
