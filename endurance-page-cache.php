@@ -756,6 +756,10 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function should_throttle( $uri, $type ) {
 
+			if ( is_null( $uri ) ) {
+				return true;
+			}
+
 			$should_throttle = false;
 
 			$this->should_update_throttled_items = true;
