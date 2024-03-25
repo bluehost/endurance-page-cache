@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.2
+ * Version: 2.2.1
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.2' );
+define( 'EPC_VERSION', '2.2.1' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -174,7 +174,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
 
-			$path                     = defined( 'ABSPATH' ) ? ABSPATH : dirname( __FILE__ );
+			$path                     = defined( 'ABSPATH' ) ? ABSPATH : __DIR__;
 			$this->file_based_enabled = (bool) get_option( 'endurance_file_enabled', false === strpos( $path, 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
@@ -402,8 +402,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * be purged.
 		 *
 		 * @param string $option Option name
-		 * @param mixed $old_value Old option value
-		 * @param mixed $new_value New option value
+		 * @param mixed  $old_value Old option value
+		 * @param mixed  $new_value New option value
 		 *
 		 * @return bool
 		 */
@@ -534,8 +534,8 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Purge appropriate caches when post when post is updated.
 		 *
-		 * @param string $old_status The previous post status
-		 * @param string $new_status The new post status
+		 * @param string  $old_status The previous post status
+		 * @param string  $new_status The new post status
 		 * @param WP_Post $post The post object of the edited or created post
 		 */
 		public function save_post( $old_status, $new_status, $post ) {
@@ -580,7 +580,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$year_archive      = get_year_link( (int) get_the_date( 'y', $post ) );
 			$year_archive_path = str_replace( get_site_url(), '', $year_archive );
 			$this->purge_dir( $year_archive_path );
-
 		}
 
 		/**
@@ -863,7 +862,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return $base . $uri;
 			}
 
-			return str_replace( str_replace( wp_parse_url( home_url('/'), PHP_URL_PATH ), '', home_url() ), $base, $uri );
+			return str_replace( str_replace( wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '', home_url() ), $base, $uri );
 		}
 
 		/**
@@ -965,7 +964,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
 			}
-
 		}
 
 		/**
@@ -1446,7 +1444,7 @@ HTACCESS;
 			if ( ! $this->use_file_cache() ) {
 				$domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$domain = str_replace( 'www.', '', $domain );
-				$path   = explode( 'public_html', dirname( __FILE__ ) );
+				$path   = explode( 'public_html', __DIR__ );
 				if ( 2 !== count( $path ) ) {
 					return;
 				}
