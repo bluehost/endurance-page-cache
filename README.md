@@ -29,4 +29,5 @@ Endurance Page Cache adds basic file-based caching to WordPress, as well as more
 - Push all changes to `master`.
 - Merge all changes to `production`.
 - Create a release on GitHub for the new version.
-- Log into DigitalOcean and update the [`mu-plugins.json`](https://cdn.hiive.space/bluehost/mu-plugins.json) file on the CDN to reflect the new version number.
+- Log into DigitalOcean and update the [`mu-plugins.json`](https://cdn.hiive.space/bluehost/mu-plugins.json) file on the CDN to reflect the new version number. (Download, edit file, upload, make public, and replace).
+- Make sure to purge the file from the DigitalOcean Spaces CDN to update immediately.

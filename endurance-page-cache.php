@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.2
+ * Version: 2.2.1
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.2' );
+define( 'EPC_VERSION', '2.2.1' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -174,7 +174,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$this->cloudflare_tier         = ( is_numeric( $cloudflare_state ) && $cloudflare_state ) ? 'basic' : $cloudflare_state;
 			$this->udev_api_services['cf'] = $this->cloudflare_tier;
 
-			$path                     = defined( 'ABSPATH' ) ? ABSPATH : dirname( __FILE__ );
+			$path                     = defined( 'ABSPATH' ) ? ABSPATH : __DIR__;
 			$this->file_based_enabled = (bool) get_option( 'endurance_file_enabled', false === strpos( $path, 'public_html' ) );
 
 			array_push( $this->cache_exempt, rest_get_url_prefix() );
@@ -363,7 +363,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Convert a string to snake case.
 		 *
-		 * @param string $value     String to be converted.
+		 * @param string $value String to be converted.
 		 * @param string $delimiter Delimiter (can be a dash for conversion to kebab case).
 		 *
 		 * @return string
@@ -401,7 +401,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * Handlers that listens for changes to options and checks to see, based on the option name, if the cache should
 		 * be purged.
 		 *
-		 * @param string $option    Option name
+		 * @param string $option Option name
 		 * @param mixed  $old_value Old option value
 		 * @param mixed  $new_value New option value
 		 *
@@ -536,7 +536,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 *
 		 * @param string  $old_status The previous post status
 		 * @param string  $new_status The new post status
-		 * @param WP_Post $post       The post object of the edited or created post
+		 * @param WP_Post $post The post object of the edited or created post
 		 */
 		public function save_post( $old_status, $new_status, $post ) {
 
@@ -580,7 +580,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$year_archive      = get_year_link( (int) get_the_date( 'y', $post ) );
 			$year_archive_path = str_replace( get_site_url(), '', $year_archive );
 			$this->purge_dir( $year_archive_path );
-
 		}
 
 		/**
@@ -749,12 +748,16 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Ensure that a URI isn't purged more than once per minute.
 		 *
-		 * @param string $uri  URI being purged
+		 * @param string $uri URI being purged
 		 * @param string $type The type of throttling
 		 *
 		 * @return bool True if additional purges should be avoided, false otherwise.
 		 */
 		public function should_throttle( $uri, $type ) {
+
+			if ( is_null( $uri ) ) {
+				return true;
+			}
 
 			$should_throttle = false;
 
@@ -841,7 +844,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		/**
 		 * Get URL to be used for purge requests.
 		 *
-		 * @param string $uri    The original URI
+		 * @param string $uri The original URI
 		 * @param string $scheme The scheme to be used
 		 *
 		 * @return string
@@ -859,7 +862,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				return $base . $uri;
 			}
 
-			return str_replace( str_replace( wp_parse_url( home_url(), PHP_URL_PATH ), '', home_url() ), $base, $uri );
+			return str_replace( str_replace( wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '', home_url() ), $base, $uri );
 		}
 
 		/**
@@ -961,7 +964,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			if ( file_exists( $this->cache_dir . '/_index.html' ) ) {
 				unlink( $this->cache_dir . '/_index.html' );
 			}
-
 		}
 
 		/**
@@ -1442,7 +1444,7 @@ HTACCESS;
 			if ( ! $this->use_file_cache() ) {
 				$domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
 				$domain = str_replace( 'www.', '', $domain );
-				$path   = explode( 'public_html', dirname( __FILE__ ) );
+				$path   = explode( 'public_html', __DIR__ );
 				if ( 2 !== count( $path ) ) {
 					return;
 				}
@@ -1560,7 +1562,7 @@ HTACCESS;
 		 * Calling this method with *no* parameters triggers a full cache wipe for the domain.
 		 * Calling this method with relative paths to resources will purge just those resources.
 		 *
-		 * @param array $resources         (Site paths, image assets, scripts, styles, files, etc)
+		 * @param array $resources (Site paths, image assets, scripts, styles, files, etc)
 		 * @param array $override_services (see defaults on self::$udev_api_services)
 		 *
 		 * @return void
@@ -1615,7 +1617,7 @@ HTACCESS;
 		/**
 		 * Take hosts (and perhaps specific resources) to purge and encode JSON for request body.
 		 *
-		 * @param array $hosts     List of hosts
+		 * @param array $hosts List of hosts
 		 * @param array $resources List of resources
 		 *
 		 * @return string|false
