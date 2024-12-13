@@ -1230,7 +1230,7 @@ HTACCESS;
 				}
 			}
 
-			$cache_settings = get_option( 'mm_cache_settings' );
+			$cache_settings = get_option( 'mm_cache_settings', array() );
 			if ( 'page' === $type ) {
 				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
@@ -1346,7 +1346,7 @@ HTACCESS;
 		 * @return int
 		 */
 		public function cache_level_change( $new_cache_level, $old_cache_level ) {
-			$cache_settings = get_option( 'mm_cache_settings' );
+			$cache_settings = get_option( 'mm_cache_settings', array() );
 			if ( 0 === $new_cache_level ) {
 				$cache_settings['page']    = 'disabled';
 				$cache_settings['browser'] = 'disabled';
