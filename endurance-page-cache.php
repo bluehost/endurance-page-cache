@@ -155,11 +155,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		);
 
 		/**
+		 * The hook name for scheduling a cache purge event.
+		 *
+		 * @var string
+		 */
+		public $epc_scheduled_purge_all_hook = 'epc_scheduled_purge_all';
+
+		/**
 		 * Endurance_Page_Cache constructor.
 		 */
 		public function __construct() {
 
 			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				add_action( $this->epc_scheduled_purge_all_hook, array( __CLASS__, 'scheduled_purge_all' ) );
 				return;
 			}
 
@@ -512,10 +520,31 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			$this->add_trigger( 'option_update_' . $option );
-			$this->purge_all();
-
+			$this->add_trigger( 'option_handler' );
+			// Schedule a purge if not already scheduled.
+			$this->schedule_purge_all();
 			return true;
+		}
+
+		/**
+		 * Schedules a single event for purging the cache.
+		 *
+		 * @return void
+		 */
+		public function schedule_purge_all() {
+			if ( ! wp_next_scheduled( $this->epc_scheduled_purge_all_hook ) ) {
+				wp_schedule_single_event( time() + 60, $this->epc_scheduled_purge_all_hook );
+			}
+		}
+
+		/**
+		 * Static cron job handler to execute a purge all.
+		 */
+		public static function scheduled_purge_all() {
+			$instance = self::get_instance();
+			if ( $instance ) {
+				$instance->purge_all();
+			}
 		}
 
 		/**
@@ -1661,6 +1690,21 @@ HTACCESS;
 			if ( ! empty( $this->udev_purge_buffer ) || is_array( $this->udev_purge_buffer ) ) {
 				$this->udev_cache_purge( $this->udev_purge_buffer );
 			}
+		}
+
+		/**
+		 * Retrieve the singleton instance of the class.
+		 *
+		 * @return Endurance_Page_Cache
+		 */
+		public static function get_instance() {
+			static $instance = null;
+
+			if ( null === $instance ) {
+				$instance = new self();
+			}
+
+			return $instance;
 		}
 	}
 
