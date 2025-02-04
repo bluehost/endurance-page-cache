@@ -13,7 +13,9 @@ class GetPurgeRequestUrlTest extends WP_UnitTestCase {
 	/**
 	 * Setup class instance
 	 */
-	public function setUp() {
+	public function setUp(): void
+	{
+		parent::setUp();
 		$this->instance = new Endurance_Page_Cache();
 	}
 

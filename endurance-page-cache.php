@@ -1,8 +1,9 @@
 <?php
+
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.2.1
+ * Version: 2.2.2
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,7 +28,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.2.1' );
+define('EPC_VERSION', '2.2.2');
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -155,11 +156,19 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		);
 
 		/**
+		 * The hook name for scheduling a cache purge event.
+		 *
+		 * @var string
+		 */
+		public $epc_scheduled_purge_all_hook = 'epc_scheduled_purge_all';
+
+		/**
 		 * Endurance_Page_Cache constructor.
 		 */
 		public function __construct() {
 
 			if ( isset( $_GET['doing_wp_cron'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				add_action( $this->epc_scheduled_purge_all_hook, array( __CLASS__, 'scheduled_purge_all' ) );
 				return;
 			}
 
@@ -512,10 +521,31 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				}
 			}
 
-			$this->add_trigger( 'option_update_' . $option );
-			$this->purge_all();
-
+			$this->add_trigger( 'option_handler' );
+			// Schedule a purge if not already scheduled.
+			$this->schedule_purge_all();
 			return true;
+		}
+
+		/**
+		 * Schedules a single event for purging the cache.
+		 *
+		 * @return void
+		 */
+		public function schedule_purge_all() {
+			if ( ! wp_next_scheduled( $this->epc_scheduled_purge_all_hook ) ) {
+				wp_schedule_single_event( time() + 60, $this->epc_scheduled_purge_all_hook );
+			}
+		}
+
+		/**
+		 * Static cron job handler to execute a purge all.
+		 */
+		public static function scheduled_purge_all() {
+			$instance = self::get_instance();
+			if ( $instance ) {
+				$instance->purge_all();
+			}
 		}
 
 		/**
@@ -540,8 +570,9 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 */
 		public function save_post( $old_status, $new_status, $post ) {
 
+			$post_type_object = get_post_type_object( $post->post_type );
 			// Skip purging for non-public post types
-			if ( ! get_post_type_object( $post->post_type )->public ) {
+			if ( ! $post_type_object || ! $post_type_object->public ) {
 				return;
 			}
 
@@ -1229,7 +1260,7 @@ HTACCESS;
 				}
 			}
 
-			$cache_settings = get_option( 'mm_cache_settings' );
+			$cache_settings = get_option( 'mm_cache_settings', array() );
 			if ( 'page' === $type ) {
 				if ( isset( $_GET['epc_toggle'] ) && is_admin() ) { // phpcs:ignore WordPress.Security.NonceVerification
 					$valid_values = array( 'enabled', 'disabled' );
@@ -1345,7 +1376,7 @@ HTACCESS;
 		 * @return int
 		 */
 		public function cache_level_change( $new_cache_level, $old_cache_level ) {
-			$cache_settings = get_option( 'mm_cache_settings' );
+			$cache_settings = get_option( 'mm_cache_settings', array() );
 			if ( 0 === $new_cache_level ) {
 				$cache_settings['page']    = 'disabled';
 				$cache_settings['browser'] = 'disabled';
@@ -1660,6 +1691,21 @@ HTACCESS;
 			if ( ! empty( $this->udev_purge_buffer ) || is_array( $this->udev_purge_buffer ) ) {
 				$this->udev_cache_purge( $this->udev_purge_buffer );
 			}
+		}
+
+		/**
+		 * Retrieve the singleton instance of the class.
+		 *
+		 * @return Endurance_Page_Cache
+		 */
+		public static function get_instance() {
+			static $instance = null;
+
+			if ( null === $instance ) {
+				$instance = new self();
+			}
+
+			return $instance;
 		}
 	}
 
