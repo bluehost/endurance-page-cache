@@ -568,7 +568,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @param WP_Post $post The post object of the edited or created post
 		 */
 		public function save_post( $old_status, $new_status, $post ) {
-			
+
 			$post_type_object = get_post_type_object( $post->post_type );
 			// Skip purging for non-public post types
 			if ( ! $post_type_object || ! $post_type_object->public ) {
