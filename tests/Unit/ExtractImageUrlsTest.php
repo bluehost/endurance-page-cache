@@ -3,14 +3,17 @@
 /**
  * Class ExtractImageUrlsTest
  */
-class ExtractImageUrlsTest extends WP_UnitTestCase {
+class ExtractImageUrlsTest extends WP_UnitTestCase
+{
 
 	/**
 	 * @var \Endurance_Page_Cache
 	 */
 	protected $instance;
 
-	public function setUp() {
+	public function setUp(): void
+	{
+		parent::setUp();
 		$this->instance = new Endurance_Page_Cache();
 	}
 
@@ -22,9 +25,10 @@ class ExtractImageUrlsTest extends WP_UnitTestCase {
 	 * @param string $content
 	 * @param array  $expected
 	 */
-	public function testThis( $content, $expected ) {
-		$actual = $this->instance->extract_image_urls( $content );
-		$this->assertSame( $expected, $actual );
+	public function testThis($content, $expected)
+	{
+		$actual = $this->instance->extract_image_urls($content);
+		$this->assertSame($expected, $actual);
 	}
 
 	/**
@@ -32,11 +36,12 @@ class ExtractImageUrlsTest extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function dataProvider() {
+	public function dataProvider()
+	{
 		return [
 
 			// Empty content should return an empty array
-			[ '', [] ],
+			['', []],
 
 			// A WordPress gallery block with two items should return the two items
 			[
@@ -58,5 +63,4 @@ class ExtractImageUrlsTest extends WP_UnitTestCase {
 
 		];
 	}
-
 }

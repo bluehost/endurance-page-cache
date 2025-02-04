@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit backupGlobals="false"
-         bootstrap="./tests/bootstrap.php"
-         colors="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         verbose="true"
+<phpunit
+    backupGlobals="false"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    verbose="true"
 >
     <php>
-        <ini name="display_errors" value="true"/>
+        <ini name="display_errors" value="true" />
     </php>
     <testsuites>
-        <testsuite name="Application Test Suite">
-            <directory>tests</directory>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">tests/Unit</directory>
         </testsuite>
     </testsuites>
 </phpunit>

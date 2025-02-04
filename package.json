@@ -9,7 +9,7 @@
     "prelint": "npm run wp-env run composer install -- --no-interaction",
     "lint": "npm run wp-env run composer run-script lint",
     "test": "npm run test-unit",
-    "test-unit": "wp-env run tests-cli --env-cwd=/var/www/html/wp-content/plugins/endurance-page-cache phpunit -c /var/www/html/wp-content/plugins/endurance-page-cache/phpunit.xml",
+    "test-unit": "wp-env run tests-cli --env-cwd=/var/www/html/wp-content/plugins/endurance-page-cache vendor/bin/phpunit -c /var/www/html/wp-content/plugins/endurance-page-cache/phpunit.xml",
     "wp-env": "wp-env"
   },
   "repository": {
