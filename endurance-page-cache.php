@@ -1142,13 +1142,6 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
 			$additions = 'Options -Indexes' . PHP_EOL;
 
-			$additions .= <<<HTACCESS
-<IfModule mod_headers.c>
-	Header set X-Endurance-Cache-Level "{$this->cache_level}"
-	Header set X-nginx-cache "WordPress"
-</IfModule>
-HTACCESS;
-
 			$additions .= PHP_EOL;
 
 			if ( $this->use_file_cache() ) {
