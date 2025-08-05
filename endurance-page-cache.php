@@ -1140,9 +1140,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
 
-			$additions = 'Options -Indexes' . PHP_EOL;
-
-			$additions .= <<<HTACCESS
+			$additions = <<<HTACCESS
 <IfModule mod_headers.c>
 	Header set X-Endurance-Cache-Level "{$this->cache_level}"
 	Header set X-nginx-cache "WordPress"
