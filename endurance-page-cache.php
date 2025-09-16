@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
@@ -28,7 +27,7 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define('EPC_VERSION', '2.2.2');
+define( 'EPC_VERSION', '2.2.2' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 
@@ -1140,10 +1139,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
 
-			$additions = 'Options -Indexes' . PHP_EOL;
-
-			$additions .= PHP_EOL;
-
+			$additions = '';
 			if ( $this->use_file_cache() ) {
 				$additions .= <<<HTACCESS
 <IfModule mod_rewrite.c>
