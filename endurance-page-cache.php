@@ -1836,6 +1836,10 @@ HTACCESS;
 		/**
 		 * Clean stray EPC rules inside the core WordPress block and normalize formatting.
 		 *
+		 * - Never removes the native WP rewrite block (the one with "^index\.php$ - [L]").
+		 * - Preserves brand inline patches (e.g., "NFD PATCH", "Newfold", "nfd.skip404.static").
+		 * - Removes only EPC legacy blocks (file-cache + skip-404 with "RewriteRule .* - [L]").
+		 *
 		 * @return bool True if the file was modified, false otherwise.
 		 */
 		private function nfd_scrub_inside_wp_block() {
@@ -1846,87 +1850,101 @@ HTACCESS;
 
 			$contents = file_get_contents( $path );
 
-			// Match the entire WordPress block.
-			if ( ! preg_match( '/(# BEGIN WordPress\b)([\s\S]*?)(# END WordPress\b)/', $contents, $matches ) ) {
+			// Find the WordPress block.
+			if ( ! preg_match( '/(# BEGIN WordPress\b)([\s\S]*?)(# END WordPress\b)/', $contents, $m ) ) {
 				return false;
 			}
 
-			list( $full_match, $wp_begin, $wp_body, $wp_end ) = $matches;
-			$orig_body                                        = $wp_body;
+			list( $full, $wp_begin, $wp_body, $wp_end ) = $m;
+			$orig_body                                  = $wp_body;
 
-			// --- Normalize formatting ---
+			$had_native_wp_rule = (bool) preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $wp_body );
 
-			// Ensure newline after "will be overwritten."
-			$wp_body = preg_replace(
-				'/(will be overwritten\.)\s*(?=<)/i',
-				"$1\n",
-				$wp_body
-			);
-
-			// Split glued tags like "</IfModule><IfModule".
-			$wp_body = preg_replace( '/<\/IfModule>\s*(?=<IfModule\b)/i', "</IfModule>\n", $wp_body );
-
-			// Split "Options -Indexes<IfModule".
+			// Normalize some formatting glitches we’ve seen in the wild.
+			$wp_body = preg_replace( '/(will be overwritten\.)\s*(?=<)/i', "$1\n", $wp_body ); // newline after comment
+			$wp_body = preg_replace( '/<\/IfModule>\s*(?=<IfModule\b)/i', "</IfModule>\n", $wp_body ); // split glued tags
 			$wp_body = preg_replace( '/Options\s+-Indexes(?=<IfModule\b)/i', "Options -Indexes\n", $wp_body );
 
-			// --- Remove junk ---
-
-			// Remove "Options -Indexes" lines.
-			$wp_body = preg_replace( '/^\h*Options\s+-Indexes\s*$/im', '', $wp_body );
-
-			// Remove mod_headers that set EPC/brand cache headers.
+			// Remove simple junk that never belongs in the WP block.
+			$wp_body = preg_replace( '/^\h*Options\s+-Indexes\s*$/im', '', $wp_body ); // stray Options -Indexes
 			$wp_body = preg_replace(
 				'/\s*<IfModule\s+mod_headers\.c>[\s\S]*?(?:^|\R)\h*Header\s+set\s+(?:X-Endurance-Cache-Level|X-nginx-cache)\b[\s\S]*?<\/IfModule>\s*/im',
 				'',
 				$wp_body
+			); // old EPC headers
+			$wp_body = preg_replace( '/\s*<IfModule\s+mod_expires\.c>[\s\S]*?<\/IfModule>\s*/i', '', $wp_body ); // browser cache belongs outside
+
+			// Detect brand markers; when present, we never strip rewrite lines in-place.
+			$has_brand_markers = (
+				stripos( $wp_body, 'NFD PATCH' ) !== false
+				|| stripos( $wp_body, 'Newfold' ) !== false
+				|| stripos( $wp_body, 'nfd.skip404.static' ) !== false
 			);
 
-			// Remove mod_expires blocks.
-			$wp_body = preg_replace( '/\s*<IfModule\s+mod_expires\.c>[\s\S]*?<\/IfModule>\s*/i', '', $wp_body );
-
-			// Helper: strip mod_rewrite blocks matching a predicate, preserve native WP block.
-			$strip_rewrite_blocks = function ( $text, $predicate ) {
-				return preg_replace_callback(
+			if ( ! $has_brand_markers ) {
+				// Process each mod_rewrite block *individually*.
+				$wp_body = preg_replace_callback(
 					'/\s*<IfModule\s+mod_rewrite\.c>([\s\S]*?)<\/IfModule>\s*/i',
-					function ( $mm ) use ( $predicate ) {
+					function ( $mm ) {
 						$inner = $mm[1];
-						// Keep the native WP rewrite block.
+
+						// 1) Never touch the native WP rewrite block.
 						if ( preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $inner ) ) {
 							return $mm[0];
 						}
-						return $predicate( $inner ) ? '' : $mm[0];
+
+						// 2) Remove EPC file-cache rewrite blocks outright.
+						if ( preg_match( '/endurance-page-cache|_index\.html/i', $inner ) ) {
+							return '';
+						}
+
+						// 3) Remove EPC skip-404 blocks ONLY if they include the sentinel "RewriteRule .* - [L]".
+						if ( preg_match( '/^\h*RewriteRule\s+\.\*\s+-\s+\[L\]\s*$/im', $inner ) ) {
+							// Strip that sentinel rule and its paired conditions, but leave anything else alone.
+							$inner = preg_replace( '/^\h*RewriteRule\s+\.\*\s+-\s+\[L\]\s*$/im', '', $inner );
+							$inner = preg_replace( '/^\h*RewriteCond\s+\%\{REQUEST_FILENAME\}\s+!-f\s*$/im', '', $inner );
+							$inner = preg_replace( '/^\h*RewriteCond\s+\%\{REQUEST_FILENAME\}\s+!-d\s*$/im', '', $inner );
+							$inner = preg_replace(
+								'/^\h*RewriteCond\s+\%\{REQUEST_URI\}\s+!\(robots\\\.txt\|[a-z0-9_\-]*sitemap[a-z0-9_\.\-]*\\\.(xml|xsl|html)\\\(\\\.gz\\\)\?\)\s*$/im',
+								'',
+								$inner
+							);
+							$inner = preg_replace(
+								'/^\h*RewriteCond\s+\%\{REQUEST_URI\}\s+\\\.\((?:css|htc|less|js|js2|js3|js4|html|htm|rtf|rtx|txt|xsd|xsl|xml|asf|asx|wax|wmv|wmx|avi|avif|avifs|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|webp|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|webm|mpp|otf|_otf|odb|odc|odf|odg|odp|ods|odt|ogg|ogv|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|_ttf|wav|wma|wri|woff|woff2|xla|xls|xlsx|xlt|xlw)\)\\\)\$\s+\[NC\]\s*$/im',
+								'',
+								$inner
+							);
+
+							// If the block is now empty (no RewriteCond/RewriteRule), drop it entirely.
+							if ( ! preg_match( '/Rewrite(Cond|Rule)\b/i', $inner ) ) {
+								return '';
+							}
+
+							// Otherwise keep the reduced block wrapped.
+							return "<IfModule mod_rewrite.c>\n" . trim( $inner ) . "\n</IfModule>\n";
+						}
+
+						// Anything else: leave untouched.
+						return $mm[0];
 					},
-					$text
+					$wp_body
 				);
-			};
+			}
 
-			// Remove EPC file-cache rewrite blocks.
-			$wp_body = $strip_rewrite_blocks(
-				$wp_body,
-				function ( $inner ) {
-					return (bool) preg_match( '/endurance-page-cache|_index\.html/i', $inner );
-				}
-			);
-
-			// Remove EPC skip-404 blocks.
-			$wp_body = $strip_rewrite_blocks(
-				$wp_body,
-				function ( $inner ) {
-					$has_no_f    = preg_match( '/RewriteCond\s+%\{REQUEST_FILENAME\}\s+!-f/i', $inner );
-					$has_no_d    = preg_match( '/RewriteCond\s+%\{REQUEST_FILENAME\}\s+!-d/i', $inner );
-					$ends_dash_l = preg_match( '/RewriteRule\s+\.\*\s+-\s+\[L\]/i', $inner );
-					return ( $has_no_f && $has_no_d && $ends_dash_l );
-				}
-			);
-
-			// Compact blank lines.
+			// Compact excessive blank lines.
 			$wp_body = preg_replace( '/\R{3,}/', "\n\n", $wp_body );
+
+			// SAFETY: if we had the native WP rule before, we must still have it after. If not, abort.
+			$still_has_native_wp_rule = (bool) preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $wp_body );
+			if ( $had_native_wp_rule && ! $still_has_native_wp_rule ) {
+				return false;
+			}
 
 			if ( $wp_body === $orig_body ) {
 				return false;
 			}
 
-			// Reassemble file.
+			// Write the updated WP block back.
 			$new = preg_replace(
 				'/# BEGIN WordPress\b[\s\S]*?# END WordPress\b/',
 				$wp_begin . $wp_body . $wp_end,
@@ -1936,10 +1954,6 @@ HTACCESS;
 			file_put_contents( $path, $new );
 			return true;
 		}
-
-
-
-
 
 		/**
 		 * Main method to ensure .htaccess EPC block is correct or removed if not needed.
