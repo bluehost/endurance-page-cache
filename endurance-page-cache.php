@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Endurance Page Cache
  * Description: This cache plugin is primarily for cache purging of the additional layers of cache that may be available on your hosting account.
- * Version: 2.2.2
+ * Version: 2.3.0
  * Author: Mike Hansen
  * Author URI: https://www.mikehansen.me/
  * License: GPLv2 or later
@@ -27,10 +27,13 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-define( 'EPC_VERSION', '2.2.2' );
+define( 'EPC_VERSION', '2.3.0' );
 
 if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
-
+	// Marker for all EPC-managed rules
+	if ( ! defined( 'NFD_EPC_MARKER' ) ) {
+		define( 'NFD_EPC_MARKER', 'NFD EPC' );
+	}
 	/**
 	 * Class Endurance_Page_Cache
 	 */
@@ -218,43 +221,55 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 				add_action( 'shutdown', array( $this, 'shutdown' ) );
 				add_action( 'generate_rewrite_rules', array( $this, 'config_nginx' ) );
 			}
-			add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_rewrites' ), 77 );
-			add_filter( 'mod_rewrite_rules', array( $this, 'htaccess_contents_expirations' ), 88 );
 
-			add_action( 'update_option_endurance_cache_level', array( $this, 'update_htaccess' ) );
-			add_action( 'update_option_endurance_file_enabled', array( $this, 'update_htaccess' ) );
-			add_action( 'update_option_epc_skip_404_handling', array( $this, 'update_htaccess' ) );
-			add_action( 'update_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
-			add_action( 'delete_option_epc_filetype_expirations', array( $this, 'update_htaccess' ) );
+			// Reconcile in safe contexts (no frontend cost)
+			add_action( 'admin_init', array( $this, 'nfd_reconcile_epc_htaccess' ) );
+			add_action( 'rest_api_init', array( $this, 'nfd_reconcile_epc_htaccess' ) );
+			add_action(
+				'init',
+				function () {
+					if ( ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() )
+						|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() ) ) {
+							$this->nfd_reconcile_epc_htaccess();
+					}
+				},
+				5
+			);
 
+			// Run reconcile late in shutdown so it happens after EPC's own finish/shutdown (priority 20)
+			add_action( 'shutdown', array( $this, 'nfd_reconcile_epc_htaccess' ), 20 );
+
+			// Reconcile when options that affect rules change
+			add_action( 'update_option_endurance_cache_level', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'delete_option_endurance_cache_level', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'update_option_epc_skip_404_handling', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'delete_option_epc_skip_404_handling', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+
+			// These also influence composition of rules
+			add_action( 'update_option_mm_cache_settings', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'update_option_endurance_file_enabled', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'update_option_epc_filetype_expirations', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+			add_action( 'delete_option_epc_filetype_expirations', array( $this, 'nfd_reconcile_epc_htaccess' ), 10, 0 );
+
+			// Other hooks
 			add_action( 'admin_init', array( $this, 'register_cache_settings' ) );
 			add_action( 'transition_post_status', array( $this, 'save_post' ), 10, 3 );
 			add_action( 'edit_terms', array( $this, 'edit_terms' ) );
-
 			add_action( 'comment_post', array( $this, 'comment' ) );
-
 			add_action( 'updated_option', array( $this, 'option_handler' ), 10, 3 );
-
 			add_action( 'epc_purge', array( $this, 'purge_all' ) );
 			add_action( 'epc_purge_request', array( $this, 'purge_request' ) );
-
 			add_action( 'wp_update_nav_menu', array( $this, 'purge_all' ) );
-
 			add_action( 'admin_bar_menu', array( $this, 'admin_toolbar' ), 99 );
-
 			add_action( 'init', array( $this, 'do_purge' ) );
-
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'status_link' ) );
-
 			add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'update' ) );
-
 			add_filter( 'pre_update_option_mm_cache_settings', array( $this, 'cache_type_change' ), 10, 2 );
 			add_filter( 'pre_update_option_endurance_cache_level', array( $this, 'cache_level_change' ), 10, 2 );
-
 			add_filter( 'got_rewrite', array( $this, 'force_rewrite' ) );
-
-			add_action( 'shutdown', array( $this, 'udev_cache_purge_via_buffer' ) );
+			add_action( 'shutdown', array( $this, 'udev_cache_purge_via_buffer' ) ); // keep (priority 10)
 		}
+
 
 		/**
 		 * Customize the WP Admin Bar.
@@ -1125,6 +1140,7 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 			}
 
 			save_mod_rewrite_rules();
+			$this->nfd_scrub_inside_wp_block();
 		}
 
 		/**
@@ -1135,6 +1151,11 @@ if ( ! class_exists( 'Endurance_Page_Cache' ) ) {
 		 * @return string
 		 */
 		public function htaccess_contents_rewrites( $rules ) {
+			// Never inject inside the WordPress block; we manage a separate marked block.
+			if ( did_action( 'mod_rewrite_rules' ) || doing_action( 'mod_rewrite_rules' ) ) {
+				return $rules;
+			}
+
 			$base      = wp_parse_url( trailingslashit( get_option( 'home' ) ), PHP_URL_PATH );
 			$cache_url = $base . str_replace( get_option( 'home' ), '', WP_CONTENT_URL . '/endurance-page-cache' );
 			$cache_url = str_replace( '//', '/', $cache_url );
@@ -1181,6 +1202,10 @@ HTACCESS;
 		 * @return string
 		 */
 		public function htaccess_contents_expirations( $rules ) {
+			// Never inject inside the WordPress block; we manage a separate marked block.
+			if ( did_action( 'mod_rewrite_rules' ) || doing_action( 'mod_rewrite_rules' ) ) {
+				return $rules;
+			}
 
 			if ( ! $this->is_enabled( 'browser' ) || $this->cache_level < 1 ) {
 				return $rules;
@@ -1695,6 +1720,291 @@ HTACCESS;
 			}
 
 			return $instance;
+		}
+
+		/**
+		 * Get the path to the .htaccess file.
+		 */
+		private function nfd_htaccess_path() {
+			return trailingslashit( ABSPATH ) . '.htaccess'; }
+
+		/**
+		 * Check if we are in a context safe to modify .htaccess
+		 * (admin, ajax, cron, WP-CLI, REST API).
+		 */
+		private function nfd_safe_context() {
+			return ( is_admin()
+				|| ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() )
+				|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() )
+				|| ( defined( 'WP_CLI' ) && WP_CLI )
+				|| ( defined( 'REST_REQUEST' ) && REST_REQUEST ) );
+		}
+
+		/**
+		 * Reconcile .htaccess contents with current settings.
+		 *
+		 * @return array of actions taken
+		 */
+		private function nfd_epc_lines() {
+			$rw  = $this->htaccess_contents_rewrites( '' );     // file-cache rewrites + skip404 (if enabled)
+			$exp = $this->htaccess_contents_expirations( '' );  // browser expirations (if enabled)
+			$txt = trim( $rw . "\n" . $exp );
+			$txt = preg_replace( "/\n{3,}/", "\n\n", $txt );
+			return $txt ? explode( "\n", $txt ) : array();
+		}
+
+		/**
+		 * Ensure .htaccess has correct EPC block, or remove it if not needed.
+		 *
+		 * @return boolean True if .htaccess was modified, false if no change made
+		 */
+		private function nfd_remove_block() {
+			$path = $this->nfd_htaccess_path();
+			if ( ! file_exists( $path ) || ! is_writable( $path ) ) { return false; }
+
+			$contents = file_get_contents( $path );
+			$pattern  = '/^\h*# BEGIN ' . preg_quote( NFD_EPC_MARKER, '/' ) . '\R.*?\R# END ' . preg_quote( NFD_EPC_MARKER, '/' ) . '\R?/ms';
+			$new      = preg_replace( $pattern, '', $contents ); // remove ALL occurrences
+
+			if ( $new !== $contents ) {
+				file_put_contents( $path, ltrim( $new, "\r\n" ) );
+				return true;
+			}
+			return false;
+		}
+
+		/**
+		 * Write or update the EPC block in .htaccess, or remove it if no longer needed.
+		 *
+		 * @return boolean True if .htaccess was modified, false if no change made
+		 */
+		private function nfd_write_block() {
+			$path = $this->nfd_htaccess_path();
+
+			if ( ! file_exists( $path ) ) { @touch( $path ); }
+			if ( ! is_writable( $path ) ) { return false; }
+			if ( ! function_exists( 'insert_with_markers' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/misc.php';
+			}
+
+			$lines = $this->nfd_epc_lines();
+
+			// If nothing to write, ensure our block is removed
+			if ( empty( $lines ) ) { return $this->nfd_remove_block(); }
+
+			$contents = file_get_contents( $path );
+
+			// Purge ALL existing NFD blocks
+			$pattern  = '/^\h*# BEGIN ' . preg_quote( NFD_EPC_MARKER, '/' ) . '\R.*?\R# END ' . preg_quote( NFD_EPC_MARKER, '/' ) . '\R?/ms';
+			$contents = preg_replace( $pattern, '', $contents );
+
+			// Normalize RewriteRule leading slash for per-dir .htaccess
+			$lines = array_map(
+				function ( $l ) {
+					$l = preg_replace( '/^(\s*RewriteRule\s+\^)\//', '$1', $l );
+					return rtrim( $l );
+				},
+				$lines
+			);
+
+			$block = '# BEGIN ' . NFD_EPC_MARKER . "\n" . implode( "\n", $lines ) . "\n# END " . NFD_EPC_MARKER . "\n";
+
+			$wp_beg = '# BEGIN WordPress';
+
+			if ( strpos( $contents, $wp_beg ) !== false ) {
+				$parts  = explode( $wp_beg, $contents, 2 );
+				$before = rtrim( $parts[0] );
+				$after  = $wp_beg . $parts[1];
+
+				// Use no leading separator if file begins with WP block
+				$sep_before = ( '' === $before ) ? '' : "\n\n";
+
+				// Ensure a single newline between our block and WP block
+				$new = $before . $sep_before . $block . $after;
+
+				file_put_contents( $path, $new );
+				return true;
+			}
+
+			// No WP block: append with at most one blank line before our block
+			$trimmed    = rtrim( $contents );
+			$sep_before = ( '' === $trimmed ) ? '' : "\n\n";
+			file_put_contents( $path, $trimmed . $sep_before . $block );
+			return true;
+		}
+
+		/**
+		 * Clean stray EPC rules inside the core WordPress block and normalize formatting.
+		 *
+		 * - Never removes the native WP rewrite block (the one with "^index\.php$ - [L]").
+		 * - Preserves brand inline patches (e.g., "NFD PATCH", "Newfold", "nfd.skip404.static").
+		 * - Removes only EPC legacy blocks (file-cache + skip-404 with "RewriteRule .* - [L]").
+		 *
+		 * @return bool True if the file was modified, false otherwise.
+		 */
+		private function nfd_scrub_inside_wp_block() {
+			$path = $this->nfd_htaccess_path();
+			if ( ! file_exists( $path ) || ! is_writable( $path ) ) {
+				return false;
+			}
+
+			$contents = file_get_contents( $path );
+
+			// Find the WordPress block.
+			if ( ! preg_match( '/(# BEGIN WordPress\b)([\s\S]*?)(# END WordPress\b)/', $contents, $m ) ) {
+				return false;
+			}
+
+			list( $full, $wp_begin, $wp_body, $wp_end ) = $m;
+			$orig_body                                  = $wp_body;
+
+			$had_native_wp_rule = (bool) preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $wp_body );
+
+			// Normalize some formatting glitches we’ve seen in the wild.
+			$wp_body = preg_replace( '/(will be overwritten\.)\s*(?=<)/i', "$1\n", $wp_body ); // newline after comment
+			$wp_body = preg_replace( '/<\/IfModule>\s*(?=<IfModule\b)/i', "</IfModule>\n", $wp_body ); // split glued tags
+			$wp_body = preg_replace( '/Options\s+-Indexes(?=<IfModule\b)/i', "Options -Indexes\n", $wp_body );
+
+			// Remove simple junk that never belongs in the WP block.
+			$wp_body = preg_replace( '/^\h*Options\s+-Indexes\s*$/im', '', $wp_body ); // stray Options -Indexes
+			$wp_body = preg_replace(
+				'/\s*<IfModule\s+mod_headers\.c>[\s\S]*?(?:^|\R)\h*Header\s+set\s+(?:X-Endurance-Cache-Level|X-nginx-cache)\b[\s\S]*?<\/IfModule>\s*/im',
+				'',
+				$wp_body
+			); // old EPC headers
+			$wp_body = preg_replace( '/\s*<IfModule\s+mod_expires\.c>[\s\S]*?<\/IfModule>\s*/i', '', $wp_body ); // browser cache belongs outside
+
+			// Detect brand markers; when present, we never strip rewrite lines in-place.
+			$has_brand_markers = (
+				stripos( $wp_body, 'NFD PATCH' ) !== false
+				|| stripos( $wp_body, 'Newfold' ) !== false
+				|| stripos( $wp_body, 'nfd.skip404.static' ) !== false
+			);
+
+			if ( ! $has_brand_markers ) {
+				// Process each mod_rewrite block *individually*.
+				$wp_body = preg_replace_callback(
+					'/\s*<IfModule\s+mod_rewrite\.c>([\s\S]*?)<\/IfModule>\s*/i',
+					function ( $mm ) {
+						$inner = $mm[1];
+
+						// 1) Never touch the native WP rewrite block.
+						if ( preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $inner ) ) {
+							return $mm[0];
+						}
+
+						// 2) Remove EPC file-cache rewrite blocks outright.
+						if ( preg_match( '/endurance-page-cache|_index\.html/i', $inner ) ) {
+							return '';
+						}
+
+						// 3) Remove EPC skip-404 blocks ONLY if they include the sentinel "RewriteRule .* - [L]".
+						if ( preg_match( '/^\h*RewriteRule\s+\.\*\s+-\s+\[L\]\s*$/im', $inner ) ) {
+							// Strip that sentinel rule and its paired conditions, but leave anything else alone.
+							$inner = preg_replace( '/^\h*RewriteRule\s+\.\*\s+-\s+\[L\]\s*$/im', '', $inner );
+							$inner = preg_replace( '/^\h*RewriteCond\s+\%\{REQUEST_FILENAME\}\s+!-f\s*$/im', '', $inner );
+							$inner = preg_replace( '/^\h*RewriteCond\s+\%\{REQUEST_FILENAME\}\s+!-d\s*$/im', '', $inner );
+							$inner = preg_replace(
+								'/^\h*RewriteCond\s+\%\{REQUEST_URI\}\s+!\(robots\\\.txt\|[a-z0-9_\-]*sitemap[a-z0-9_\.\-]*\\\.(xml|xsl|html)\\\(\\\.gz\\\)\?\)\s*$/im',
+								'',
+								$inner
+							);
+							$inner = preg_replace(
+								'/^\h*RewriteCond\s+\%\{REQUEST_URI\}\s+\\\.\((?:css|htc|less|js|js2|js3|js4|html|htm|rtf|rtx|txt|xsd|xsl|xml|asf|asx|wax|wmv|wmx|avi|avif|avifs|bmp|class|divx|doc|docx|eot|exe|gif|gz|gzip|ico|jpg|jpeg|jpe|webp|json|mdb|mid|midi|mov|qt|mp3|m4a|mp4|m4v|mpeg|mpg|mpe|webm|mpp|otf|_otf|odb|odc|odf|odg|odp|ods|odt|ogg|ogv|pdf|png|pot|pps|ppt|pptx|ra|ram|svg|svgz|swf|tar|tif|tiff|ttf|ttc|_ttf|wav|wma|wri|woff|woff2|xla|xls|xlsx|xlt|xlw)\)\\\)\$\s+\[NC\]\s*$/im',
+								'',
+								$inner
+							);
+
+							// If the block is now empty (no RewriteCond/RewriteRule), drop it entirely.
+							if ( ! preg_match( '/Rewrite(Cond|Rule)\b/i', $inner ) ) {
+								return '';
+							}
+
+							// Otherwise keep the reduced block wrapped.
+							return "<IfModule mod_rewrite.c>\n" . trim( $inner ) . "\n</IfModule>\n";
+						}
+
+						// Anything else: leave untouched.
+						return $mm[0];
+					},
+					$wp_body
+				);
+			}
+
+			// Compact excessive blank lines.
+			$wp_body = preg_replace( '/\R{3,}/', "\n\n", $wp_body );
+
+			// SAFETY: if we had the native WP rule before, we must still have it after. If not, abort.
+			$still_has_native_wp_rule = (bool) preg_match( '/RewriteRule\s+\^index\.php\$\s+-\s+\[L\]/i', $wp_body );
+			if ( $had_native_wp_rule && ! $still_has_native_wp_rule ) {
+				return false;
+			}
+
+			if ( $wp_body === $orig_body ) {
+				return false;
+			}
+
+			// Write the updated WP block back.
+			$new = preg_replace(
+				'/# BEGIN WordPress\b[\s\S]*?# END WordPress\b/',
+				$wp_begin . $wp_body . $wp_end,
+				$contents
+			);
+
+			file_put_contents( $path, $new );
+			return true;
+		}
+
+		/**
+		 * Main method to ensure .htaccess EPC block is correct or removed if not needed.
+		 *
+		 * @return void
+		 */
+		public function nfd_reconcile_epc_htaccess() {
+			if ( ! $this->nfd_safe_context() ) { return;
+			}
+
+			$path = $this->nfd_htaccess_path();
+			if ( ! file_exists( $path ) && ! @touch( $path ) ) { return;
+			}
+
+			// Decide if we *should* have any EPC rules at all (holistic)
+			$level             = (int) get_option( 'endurance_cache_level', 0 );
+			$skip_404          = (bool) get_option( 'epc_skip_404_handling', 0 );
+			$page_on           = ( $this->is_enabled( 'page' ) && $this->use_file_cache() );
+			$browser_on        = ( $this->is_enabled( 'browser' ) && $this->cache_level >= 1 );
+			$should_have_rules = ( $page_on || $browser_on || $skip_404 );
+
+			// Always scrub stray EPC lines out of the WordPress block (if any slipped in previously)
+			$this->nfd_scrub_inside_wp_block();
+
+			if ( ! $should_have_rules ) {
+				$this->nfd_remove_block();
+				return;
+			}
+
+			// Build expected lines and compare with current block; rewrite if missing or drifted
+			$expected = $this->nfd_epc_lines();
+
+			// If nothing to write (edge cases), remove block
+			if ( empty( $expected ) ) { $this->nfd_remove_block();
+				return; }
+
+			// Read existing block (if any)
+			$contents      = file_get_contents( $path );
+			$pattern       = '/# BEGIN ' . preg_quote( NFD_EPC_MARKER, '/' ) . '\R(.*?)\R# END ' . preg_quote( NFD_EPC_MARKER, '/' ) . '/s';
+			$matches       = array();
+			$current_lines = array();
+			if ( preg_match( $pattern, $contents, $matches ) && isset( $matches[1] ) ) {
+				// Normalize whitespace for comparison
+				$body          = preg_replace( "/\r\n?/", "\n", trim( $matches[1] ) );
+				$current_lines = array_map( 'rtrim', explode( "\n", $body ) );
+			}
+
+			// If block missing or different, rewrite the canonical block
+			if ( array_map( 'rtrim', $expected ) !== $current_lines ) {
+				$this->nfd_write_block();
+			}
 		}
 	}
 
