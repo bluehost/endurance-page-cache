@@ -1741,6 +1741,20 @@ HTACCESS;
 		}
 
 		/**
+		 * Build the EPC rule body string from current settings (no marker
+		 * wrappers; just the directives). Shared by the fragment path and
+		 * the legacy direct-write path.
+		 *
+		 * @return string
+		 */
+		private function nfd_epc_body() {
+			$rw   = $this->htaccess_contents_rewrites( '' );
+			$exp  = $this->htaccess_contents_expirations( '' );
+			$body = trim( $rw . "\n" . $exp );
+			return preg_replace( "/\n{3,}/", "\n\n", $body );
+		}
+
+		/**
 		 * Reconcile .htaccess contents with current settings.
 		 *
 		 * @return array of actions taken
@@ -1975,7 +1989,22 @@ HTACCESS;
 			$browser_on        = ( $this->is_enabled( 'browser' ) && $this->cache_level >= 1 );
 			$should_have_rules = ( $page_on || $browser_on || $skip_404 );
 
-			// Always scrub stray EPC lines out of the WordPress block (if any slipped in previously)
+			// Preferred path: hand the rules off to wp-module-htaccess so a
+			// single coordinated writer (Manager) owns .htaccess. Avoids the
+			// race conditions inherent in our own read-modify-write helpers
+			// when multiple PHP-FPM workers reconcile concurrently.
+			if ( nfd_epc_load_htaccess_fragment_class() ) {
+				$body = $should_have_rules ? $this->nfd_epc_body() : '';
+				if ( '' !== $body ) {
+					\NewfoldLabs\WP\Module\Htaccess\Api::register( new \NFD_EPC_Fragment( $body ) );
+				} else {
+					\NewfoldLabs\WP\Module\Htaccess\Api::unregister( 'nfd.epc' );
+				}
+				return;
+			}
+
+			// Legacy fallback for sites without wp-module-htaccess installed:
+			// the original direct-write reconcile, unchanged.
 			$this->nfd_scrub_inside_wp_block();
 
 			if ( ! $should_have_rules ) {
@@ -2007,6 +2036,126 @@ HTACCESS;
 			}
 		}
 	}
+
+	// phpcs:disable Universal.Files.SeparateFunctionsFromOO.Mixed -- single-file plugin; the helper below must live alongside the class to declare a Fragment implementation lazily.
+	// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- single-file plugin; NFD_EPC_Fragment is declared inline so it remains optional and only loaded when wp-module-htaccess is present.
+	/**
+	 * Lazily declare NFD_EPC_Fragment when wp-module-htaccess is available.
+	 *
+	 * This is a top-level function (not a method) because PHP forbids class
+	 * declarations nested inside class methods. Sites bundling
+	 * wp-module-htaccess via Composer will have the Fragment interface
+	 * autoloaded by the time any reconcile hook fires (admin_init /
+	 * rest_api_init / shutdown); standalone EPC installs won't, in which case
+	 * this returns false and EPC falls back to its legacy direct-write path.
+	 *
+	 * Cached per-request via static so repeated reconciles don't attempt to
+	 * redeclare. Returns true when NFD_EPC_Fragment is usable.
+	 *
+	 * @return bool
+	 */
+	function nfd_epc_load_htaccess_fragment_class() {
+		static $state = null;
+		if ( null !== $state ) {
+			return $state;
+		}
+		if ( ! interface_exists( '\NewfoldLabs\WP\Module\Htaccess\Fragment' )
+			|| ! class_exists( '\NewfoldLabs\WP\Module\Htaccess\Api' ) ) {
+			$state = false;
+			return $state;
+		}
+		if ( ! class_exists( 'NFD_EPC_Fragment', false ) ) {
+			/**
+			 * Fragment implementation for the EPC managed-rules block.
+			 *
+			 * Single combined fragment for all EPC-managed rules. Marker label
+			 * matches the existing "# BEGIN NFD EPC" block so any stale
+			 * outside-the-managed-block copy is picked up by the htaccess
+			 * Manager's legacy-label migration on the next apply.
+			 */
+			final class NFD_EPC_Fragment implements \NewfoldLabs\WP\Module\Htaccess\Fragment {
+				/**
+				 * Rendered EPC rule body (no marker wrappers).
+				 *
+				 * @var string
+				 */
+				private $body;
+
+				/**
+				 * Constructor.
+				 *
+				 * @param string $body Rendered EPC rule body (no marker wrappers).
+				 */
+				public function __construct( $body ) {
+					$this->body = trim( (string) $body );
+				}
+
+				/**
+				 * Fragment identifier.
+				 *
+				 * @return string
+				 */
+				public function id() {
+					return 'nfd.epc';
+				}
+
+				/**
+				 * Render priority within the managed block.
+				 *
+				 * @return int
+				 */
+				public function priority() {
+					return self::PRIORITY_POST_WP;
+				}
+
+				/**
+				 * Whether only one fragment with this id may be registered.
+				 *
+				 * @return bool
+				 */
+				public function exclusive() {
+					return true;
+				}
+
+				/**
+				 * Whether this fragment should render in the given context.
+				 *
+				 * @param mixed $context Context object provided by the Manager (unused).
+				 * @return bool
+				 */
+				public function is_enabled( $context ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+					return '' !== $this->body;
+				}
+
+				/**
+				 * Render the fragment, marker-wrapped.
+				 *
+				 * @param mixed $context Context object provided by the Manager (unused).
+				 * @return string
+				 */
+				public function render( $context ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+					if ( '' === $this->body ) {
+						return '';
+					}
+					return '# BEGIN ' . NFD_EPC_MARKER . "\n" . $this->body . "\n# END " . NFD_EPC_MARKER;
+				}
+
+				/**
+				 * Patches to apply to other blocks (none for EPC).
+				 *
+				 * @param mixed $context Context object provided by the Manager (unused).
+				 * @return array
+				 */
+				public function patches( $context ) { // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
+					return array();
+				}
+			}
+		}
+		$state = true;
+		return $state;
+	}
+	// phpcs:enable Generic.Files.OneObjectStructurePerFile.MultipleFound
+	// phpcs:enable Universal.Files.SeparateFunctionsFromOO.Mixed
 
 	$epc = new Endurance_Page_Cache();
 }
