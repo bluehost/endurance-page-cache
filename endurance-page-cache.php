@@ -1984,15 +1984,41 @@ HTACCESS;
 
 			// $this->cache_level is read once, in the constructor. Anything that
 			// writes the option later in the same request (a brand plugin
-			// switching us off, for one) would otherwise not be seen until the
-			// next request, and the rules below would be built from the value
-			// the request started with. Re-read it here, and keep the property
-			// in step because use_file_cache() and the rule builders go through
-			// it too. The clamp mirrors get_cache_level() without its write,
-			// which would re-enter this method through update_option.
-			$level             = min( 3, absint( get_option( 'endurance_cache_level', 2 ) ) );
-			$this->cache_level = $level;
+			// switching us off, for one) would otherwise not be seen here, and
+			// the rules would be built from the value the request started with.
+			//
+			// The property is what use_file_cache() and the rule builders read,
+			// so point it at what is stored for the length of this reconcile and
+			// put it back afterwards. Restoring is the point: cache_level_change()
+			// runs on pre_update_option, so it sets the property to the incoming
+			// level before the option is written, and its own
+			// update_level_expirations() call reconciles from in there. That
+			// nested pass still reads the old stored value, and keeping it would
+			// leave the property behind for config_nginx() and purge_all().
+			//
+			// The clamp mirrors get_cache_level() without its write, which would
+			// re-enter this method through update_option.
+			$previous_cache_level = $this->cache_level;
+			$this->cache_level    = min( 3, absint( get_option( 'endurance_cache_level', 2 ) ) );
 
+			try {
+				$this->nfd_reconcile_epc_htaccess_rules( $path, $this->cache_level );
+			} finally {
+				$this->cache_level = $previous_cache_level;
+			}
+		}
+
+		/**
+		 * Bring the EPC block in .htaccess into line with the given cache level.
+		 *
+		 * Split out of nfd_reconcile_epc_htaccess() so that method can restore
+		 * $this->cache_level on every exit path.
+		 *
+		 * @param string $path  Path to the .htaccess file.
+		 * @param int    $level Cache level the rules should be built from.
+		 * @return void
+		 */
+		private function nfd_reconcile_epc_htaccess_rules( $path, $level ) {
 			// Decide if we *should* have any EPC rules at all (holistic)
 			$skip_404          = (bool) get_option( 'epc_skip_404_handling', 0 );
 			$page_on           = ( $this->is_enabled( 'page' ) && $this->use_file_cache() );
