@@ -1982,11 +1982,21 @@ HTACCESS;
 			if ( ! file_exists( $path ) && ! @touch( $path ) ) { return;
 			}
 
+			// $this->cache_level is read once, in the constructor. Anything that
+			// writes the option later in the same request (a brand plugin
+			// switching us off, for one) would otherwise not be seen until the
+			// next request, and the rules below would be built from the value
+			// the request started with. Re-read it here, and keep the property
+			// in step because use_file_cache() and the rule builders go through
+			// it too. The clamp mirrors get_cache_level() without its write,
+			// which would re-enter this method through update_option.
+			$level             = min( 3, absint( get_option( 'endurance_cache_level', 2 ) ) );
+			$this->cache_level = $level;
+
 			// Decide if we *should* have any EPC rules at all (holistic)
-			$level             = (int) get_option( 'endurance_cache_level', 0 );
 			$skip_404          = (bool) get_option( 'epc_skip_404_handling', 0 );
 			$page_on           = ( $this->is_enabled( 'page' ) && $this->use_file_cache() );
-			$browser_on        = ( $this->is_enabled( 'browser' ) && $this->cache_level >= 1 );
+			$browser_on        = ( $this->is_enabled( 'browser' ) && $level >= 1 );
 			$should_have_rules = ( $page_on || $browser_on || $skip_404 );
 
 			// Preferred path: hand the rules off to wp-module-htaccess so a
